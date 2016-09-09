@@ -1,6 +1,7 @@
 package com.hubspot.singularity.executor.config;
 
 import java.io.IOException;
+import java.net.URI;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.github.jknack.handlebars.Handlebars;
@@ -10,25 +11,30 @@ import com.google.inject.Provides;
 import com.google.inject.Singleton;
 import com.google.inject.name.Named;
 import com.hubspot.singularity.executor.handlebars.BashEscapedHelper;
+import com.hubspot.singularity.executor.handlebars.EscapedNewLinesHelper;
+import com.hubspot.singularity.executor.handlebars.IfHasNewLinesHelper;
 import com.hubspot.singularity.executor.handlebars.IfPresentHelper;
 import com.hubspot.singularity.runner.base.config.SingularityRunnerBaseLogging;
 import com.ning.http.client.AsyncHttpClient;
 import com.ning.http.client.AsyncHttpClientConfig;
+import com.ning.http.client.extra.ThrottleRequestFilter;
 import com.spotify.docker.client.DefaultDockerClient;
+import com.spotify.docker.client.DefaultDockerClient.Builder;
 import com.spotify.docker.client.DockerClient;
+import com.spotify.docker.client.messages.AuthConfig;
 
 public class SingularityExecutorModule extends AbstractModule {
 
   public static final String RUNNER_TEMPLATE = "runner.sh";
   public static final String ENVIRONMENT_TEMPLATE = "deploy.env";
   public static final String LOGROTATE_TEMPLATE = "logrotate.conf";
+  public static final String LOGROTATE_CRON_TEMPLATE = "logrotate.cron";
   public static final String DOCKER_TEMPLATE = "docker.sh";
   public static final String LOCAL_DOWNLOAD_HTTP_CLIENT = "SingularityExecutorModule.local.download.http.client";
   public static final String ALREADY_SHUT_DOWN = "already.shut.down";
 
   @Override
   protected void configure() {
-
   }
 
   @Provides
@@ -38,6 +44,7 @@ public class SingularityExecutorModule extends AbstractModule {
     AsyncHttpClientConfig.Builder configBldr = new AsyncHttpClientConfig.Builder();
     configBldr.setRequestTimeoutInMs((int) configuration.getLocalDownloadServiceTimeoutMillis());
     configBldr.setIdleConnectionTimeoutInMs((int) configuration.getLocalDownloadServiceTimeoutMillis());
+    configBldr.addRequestFilter(new ThrottleRequestFilter(configuration.getLocalDownloadServiceMaxConnections()));
 
     return new AsyncHttpClient(configBldr.build());
   }
@@ -65,6 +72,13 @@ public class SingularityExecutorModule extends AbstractModule {
 
   @Provides
   @Singleton
+  @Named(LOGROTATE_CRON_TEMPLATE)
+  public Template providesLogrotateCronTemplate(Handlebars handlebars) throws IOException {
+    return handlebars.compile(LOGROTATE_CRON_TEMPLATE);
+  }
+
+  @Provides
+  @Singleton
   @Named(DOCKER_TEMPLATE)
   public Template providesDockerTempalte(Handlebars handlebars) throws IOException {
     return handlebars.compile(DOCKER_TEMPLATE);
@@ -78,14 +92,31 @@ public class SingularityExecutorModule extends AbstractModule {
 
     handlebars.registerHelper(BashEscapedHelper.NAME, new BashEscapedHelper());
     handlebars.registerHelper(IfPresentHelper.NAME, new IfPresentHelper());
+    handlebars.registerHelper(IfHasNewLinesHelper.NAME, new IfHasNewLinesHelper());
+    handlebars.registerHelper(EscapedNewLinesHelper.NAME, new EscapedNewLinesHelper());
 
     return handlebars;
   }
 
   @Provides
   @Singleton
-  public DockerClient providesDockerClient() {
-    return new DefaultDockerClient("unix:///var/run/docker.sock");
+  public DockerClient providesDockerClient(SingularityExecutorConfiguration configuration) {
+    Builder dockerClientBuilder = DefaultDockerClient.builder()
+      .uri(URI.create("unix://localhost/var/run/docker.sock"))
+      .connectionPoolSize(configuration.getDockerClientConnectionPoolSize());
+
+    if(configuration.getDockerAuthConfig().isPresent()) {
+      SingularityExecutorDockerAuthConfig authConfig = configuration.getDockerAuthConfig().get();
+
+      dockerClientBuilder.authConfig(AuthConfig.builder()
+        .email(authConfig.getEmail())
+        .username(authConfig.getUsername())
+        .password(authConfig.getPassword())
+        .serverAddress(authConfig.getServerAddress())
+        .build());
+    }
+
+    return dockerClientBuilder.build();
   }
 
   @Provides

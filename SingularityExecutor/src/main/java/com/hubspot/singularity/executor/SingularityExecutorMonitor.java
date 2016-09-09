@@ -128,12 +128,14 @@ public class SingularityExecutorMonitor {
 
     exitChecker.shutdown();
 
+    final long start = System.currentTimeMillis();
+
     JavaUtils.awaitTerminationWithLatch(latch, "threadChecker", threadChecker.getExecutorService(), configuration.getShutdownTimeoutWaitMillis());
     JavaUtils.awaitTerminationWithLatch(latch, "processBuilder", processBuilderPool, configuration.getShutdownTimeoutWaitMillis());
     JavaUtils.awaitTerminationWithLatch(latch, "runningProcess", runningProcessPool, configuration.getShutdownTimeoutWaitMillis());
     JavaUtils.awaitTerminationWithLatch(latch, "processKiller", processKiller.getExecutorService(), configuration.getShutdownTimeoutWaitMillis());
 
-    LOG.info("Awaiting shutdown of all executor services for a max of {}", JavaUtils.durationFromMillis(configuration.getShutdownTimeoutWaitMillis()));
+    LOG.info("Awaiting shutdown of all thread pools for a max of {}", JavaUtils.durationFromMillis(configuration.getShutdownTimeoutWaitMillis()));
 
     try {
       latch.await();
@@ -141,7 +143,7 @@ public class SingularityExecutorMonitor {
       LOG.warn("While awaiting shutdown of executor services", e);
     }
 
-    LOG.info("Waiting {} before exiting...", JavaUtils.durationFromMillis(configuration.getStopDriverAfterMillis()));
+    LOG.info("Waited {} for shutdown of thread pools, now waiting {} before exiting...", JavaUtils.duration(start), JavaUtils.durationFromMillis(configuration.getStopDriverAfterMillis()));
 
     try {
       Thread.sleep(configuration.getStopDriverAfterMillis());
@@ -169,6 +171,7 @@ public class SingularityExecutorMonitor {
 
     try {
       if (tasks.isEmpty()) {
+        LOG.info("Shutting down executor due to no tasks being submitted within {}", JavaUtils.durationFromMillis(configuration.getIdleExecutorShutdownWaitMillis()));
         runState = RunState.SHUTDOWN;
         shuttingDown = true;
       }
@@ -279,8 +282,6 @@ public class SingularityExecutorMonitor {
 
   public void finishTask(final SingularityExecutorTask task, Protos.TaskState taskState, String message, Optional<String> errorMsg, Object... errorObjects) {
     try {
-      processKiller.cancelDestroyFuture(task.getTaskId());
-
       if (errorMsg.isPresent()) {
         task.getLog().error(errorMsg.get(), errorObjects);
       }
@@ -357,6 +358,8 @@ public class SingularityExecutorMonitor {
   }
 
   private void onFinish(SingularityExecutorTask task, Protos.TaskState taskState) {
+    processKiller.cancelDestroyFuture(task.getTaskId());
+
     tasks.remove(task.getTaskId());
     processRunningTasks.remove(task.getTaskId());
     processBuildingTasks.remove(task.getTaskId());
@@ -398,6 +401,10 @@ public class SingularityExecutorMonitor {
   }
 
   public KillState requestKill(String taskId) {
+    return requestKill(taskId, Optional.<String>absent(), false);
+  }
+
+  public KillState requestKill(String taskId, Optional<String> user, boolean destroy) {
     final Optional<SingularityExecutorTask> maybeTask = Optional.fromNullable(tasks.get(taskId));
 
     if (!maybeTask.isPresent()) {
@@ -405,6 +412,13 @@ public class SingularityExecutorMonitor {
     }
 
     final SingularityExecutorTask task = maybeTask.get();
+
+    if (!destroy && task.wasForceDestroyed()) {
+      task.getLog().debug("Already force destroyed, will not issue additional kill");
+      return KillState.DESTROYING_PROCESS;
+    }
+
+    task.getLog().info("Executor asked to kill {}", taskId);
 
     ListenableFuture<ProcessBuilder> processBuilderFuture = null;
     SingularityExecutorTaskProcessCallable runningProcess = null;
@@ -425,25 +439,62 @@ public class SingularityExecutorMonitor {
     }
 
     if (processBuilderFuture != null) {
-      processBuilderFuture.cancel(true);
+      task.getLog().info("Canceling process builder future for {}", taskId);
 
-      task.getProcessBuilder().cancel();
+      CancelThread cancelThread = new CancelThread(processBuilderFuture, task);
+      cancelThread.start();
 
       return KillState.INTERRUPTING_PRE_PROCESS;
     }
 
     if (runningProcess != null) {
-      if (wasKilled) {
+      if (destroy) {
+        if (user.isPresent()) {
+          task.getLog().info("Destroying process with pid {} for task {} by request from user {}", runningProcess.getCurrentPid(), taskId, user.get());
+        } else {
+          task.getLog().info("Destroying process with pid {} for task {}", runningProcess.getCurrentPid(), taskId);
+        }
         task.markForceDestroyed();
         runningProcess.signalKillToProcessIfActive();
         return KillState.DESTROYING_PROCESS;
-      } else {
-        processKiller.submitKillRequest(runningProcess);
+      }
+
+      if (processKiller.isKillInProgress(taskId)) {
+        task.getLog().info("Kill already in progress for task {}", taskId);
         return KillState.KILLING_PROCESS;
       }
+
+      if (user.isPresent()) {
+        task.getLog().info("Killing process for task {} by request from {}", taskId, user.get());
+      } else {
+        task.getLog().info("Killing process for task {}", taskId);
+      }
+      processKiller.submitKillRequest(runningProcess);
+      return KillState.KILLING_PROCESS;
+
     }
 
     return KillState.INCONSISTENT_STATE;
+  }
+
+  private static class CancelThread extends Thread {
+
+    private final ListenableFuture<ProcessBuilder> processBuilderFuture;
+    private final SingularityExecutorTask task;
+
+    public CancelThread(ListenableFuture<ProcessBuilder> processBuilderFuture, SingularityExecutorTask task) {
+      super("SingularityExecutorMonitor-cancel-thread");
+
+      this.processBuilderFuture = processBuilderFuture;
+      this.task = task;
+    }
+
+    @Override
+    public void run() {
+      processBuilderFuture.cancel(true);
+      task.getProcessBuilder().cancel();
+    }
+
   }
 
   private SingularityExecutorTaskProcessCallable buildProcessCallable(final SingularityExecutorTask task, ProcessBuilder processBuilder) {

@@ -5,6 +5,7 @@ import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.ExecutionException;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -76,27 +77,32 @@ public class SingularityExecutorArtifactFetcher {
       artifactManager.signalKillToProcessIfActive();
     }
 
-    public void fetchFiles() {
+    public void fetchFiles() throws InterruptedException {
       extractFiles(task, artifactManager, executorData);
 
       boolean fetchS3ArtifactsLocally = true;
 
       final ImmutableList<S3Artifact> allS3Artifacts = ImmutableList.<S3Artifact>builder()
-              .addAll(executorData.getS3Artifacts())
-              .addAll(executorData.getS3ArtifactSignatures().or(Collections.<S3ArtifactSignature>emptyList()))
-              .build();
+          .addAll(executorData.getS3Artifacts())
+          .addAll(executorData.getS3ArtifactSignatures().or(Collections.<S3ArtifactSignature>emptyList()))
+          .build();
 
-      if (executorConfiguration.isUseLocalDownloadService() && (!allS3Artifacts.isEmpty())) {
+      if (executorConfiguration.isUseLocalDownloadService() && !allS3Artifacts.isEmpty()) {
         final long start = System.currentTimeMillis();
 
-        task.getLog().info("Fetching {} (S3) artifacts and {} (S3) artifact signatures from local download service", executorData.getS3Artifacts().size(), executorData.getS3ArtifactSignatures().isPresent() ? executorData.getS3ArtifactSignatures().get().size() : 0);
+        task.getLog().info("Fetching {} (S3) artifacts and {} (S3) artifact signatures from {}", executorData.getS3Artifacts().size(),
+            executorData.getS3ArtifactSignatures().isPresent() ? executorData.getS3ArtifactSignatures().get().size() : 0, localDownloadUri);
 
         try {
           downloadFilesFromLocalDownloadService(allS3Artifacts, task);
 
           fetchS3ArtifactsLocally = false;
 
-          task.getLog().info("Fetched {} (S3) artifacts and {} (S3) artifact signatures from local download service in {}", executorData.getS3Artifacts().size(), executorData.getS3ArtifactSignatures().isPresent() ? executorData.getS3ArtifactSignatures().get().size() : 0, JavaUtils.duration(start));
+          task.getLog().info("Fetched {} (S3) artifacts and {} (S3) artifact signatures from local download service in {}", executorData.getS3Artifacts().size(),
+              executorData.getS3ArtifactSignatures().isPresent() ? executorData.getS3ArtifactSignatures().get().size() : 0, JavaUtils.duration(start));
+        } catch (InterruptedException ie) {
+          task.getLog().warn("Interrupted while downloading S3 artifacts from local download service");
+          throw ie;
         } catch (Throwable t) {
           task.getLog().error("Failed downloading S3 artifacts from local download service - falling back to in-task fetch", t);
         }
@@ -115,15 +121,38 @@ public class SingularityExecutorArtifactFetcher {
 
     private void extractFiles(SingularityExecutorTask task, ArtifactManager artifactManager, ExecutorData executorData) {
       for (EmbeddedArtifact artifact : executorData.getEmbeddedArtifacts()) {
-        artifactManager.extract(artifact, task.getTaskDefinition().getTaskDirectoryPath());
+        artifactManager.extract(artifact, task.getArtifactPath(artifact, task.getTaskDefinition().getTaskDirectoryPath()));
       }
     }
 
-    private void downloadFilesFromLocalDownloadService(List<? extends S3Artifact> s3Artifacts, SingularityExecutorTask task) {
-      final List<ListenableFuture<Response>> futures = Lists.newArrayListWithCapacity(s3Artifacts.size());
+    private class FutureHolder {
+
+      private final ListenableFuture<Response> future;
+      private final long start;
+      private final S3Artifact s3Artifact;
+
+      public FutureHolder(ListenableFuture<Response> future, long start, S3Artifact s3Artifact) {
+        this.future = future;
+        this.start = start;
+        this.s3Artifact = s3Artifact;
+      }
+
+      public Response getReponse() throws InterruptedException {
+        try {
+          return future.get();
+        } catch (ExecutionException e) {
+          throw Throwables.propagate(e);
+        }
+      }
+
+    }
+
+    private void downloadFilesFromLocalDownloadService(List<? extends S3Artifact> s3Artifacts, SingularityExecutorTask task) throws InterruptedException {
+      final List<FutureHolder> futures = Lists.newArrayListWithCapacity(s3Artifacts.size());
 
       for (S3Artifact s3Artifact : s3Artifacts) {
-        ArtifactDownloadRequest artifactDownloadRequest = new ArtifactDownloadRequest(task.getTaskDefinition().getTaskDirectory(), s3Artifact);
+        String destination = task.getArtifactPath(s3Artifact, task.getTaskDefinition().getTaskDirectoryPath()).toString();
+        ArtifactDownloadRequest artifactDownloadRequest = new ArtifactDownloadRequest(destination, s3Artifact);
 
         task.getLog().debug("Requesting {} from {}", artifactDownloadRequest, localDownloadUri);
 
@@ -138,21 +167,16 @@ public class SingularityExecutorArtifactFetcher {
         try {
           ListenableFuture<Response> future = localDownloadHttpClient.executeRequest(postRequestBldr.build());
 
-          futures.add(future);
+          futures.add(new FutureHolder(future, System.currentTimeMillis(), s3Artifact));
         } catch (IOException ioe) {
           throw Throwables.propagate(ioe);
         }
       }
 
-      for (ListenableFuture<Response> future : futures) {
-        Response response;
-        try {
-          response = future.get();
-        } catch (Exception e) {
-          throw Throwables.propagate(e);
-        }
+      for (FutureHolder future : futures) {
+        Response response = future.getReponse();
 
-        task.getLog().debug("Future got status code {}", response.getStatusCode());
+        task.getLog().debug("Future for {} got status code {} after {}", future.s3Artifact.getName(), response.getStatusCode(), JavaUtils.duration(future.start));
 
         if (response.getStatusCode() != 200) {
           throw new IllegalStateException("Got status code:" + response.getStatusCode());
@@ -164,9 +188,9 @@ public class SingularityExecutorArtifactFetcher {
       Path fetched = artifactManager.fetch(remoteArtifact);
 
       if (Objects.toString(fetched.getFileName()).endsWith(".tar.gz")) {
-        artifactManager.untar(fetched, task.getTaskDefinition().getTaskDirectoryPath());
+        artifactManager.untar(fetched, task.getArtifactPath(remoteArtifact, task.getTaskDefinition().getTaskDirectoryPath()));
       } else {
-        artifactManager.copy(fetched, task.getTaskDefinition().getTaskAppDirectoryPath());
+        artifactManager.copy(fetched, task.getArtifactPath(remoteArtifact, task.getTaskDefinition().getTaskAppDirectoryPath()));
       }
     }
 

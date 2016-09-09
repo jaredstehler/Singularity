@@ -16,6 +16,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Optional;
 import com.google.common.base.Throwables;
 import com.google.inject.Inject;
+import com.hubspot.mesos.Resources;
 import com.hubspot.singularity.SingularityCreateResult;
 import com.hubspot.singularity.SingularityPendingRequest;
 import com.hubspot.singularity.SingularityPendingRequest.PendingType;
@@ -115,7 +116,7 @@ public class SingularityCmdLineArgsMigration extends ZkDataMigration {
       for (String pendingRequest : curator.getChildren().forPath(REQUEST_PENDING_PATH)) {
         SingularityPendingRequestPrevious previous = objectMapper.readValue(curator.getData().forPath(ZKPaths.makePath(REQUEST_PENDING_PATH, pendingRequest)), SingularityPendingRequestPrevious.class);
         SingularityPendingRequest newRequest = new SingularityPendingRequest(previous.requestId, previous.deployId, previous.timestamp, previous.user, previous.pendingType,
-            getCmdLineArgs(previous.cmdLineArgs), Optional.<String> absent());
+            getCmdLineArgs(previous.cmdLineArgs), Optional.<String> absent(), Optional.<Boolean> absent(), Optional.<String> absent(), Optional.<String> absent());
 
         LOG.info("Re-saving {}", newRequest);
 
@@ -141,7 +142,8 @@ public class SingularityCmdLineArgsMigration extends ZkDataMigration {
       for (SingularityPendingTaskId pendingTaskId : taskManager.getPendingTaskIds()) {
         Optional<String> cmdLineArgs = getCmdLineArgs(pendingTaskId);
 
-        SingularityCreateResult result = taskManager.savePendingTask(new SingularityPendingTask(pendingTaskId, getCmdLineArgs(cmdLineArgs), Optional.<String> absent(), Optional.<String> absent()));
+        SingularityCreateResult result = taskManager.savePendingTask(new SingularityPendingTask(pendingTaskId, getCmdLineArgs(cmdLineArgs), Optional.<String> absent(),
+            Optional.<String> absent(), Optional.<Boolean> absent(), Optional.<String> absent(), Optional.<Resources>absent()));
 
         LOG.info("Saving {} ({}) {}", pendingTaskId, cmdLineArgs, result);
       }
@@ -150,8 +152,8 @@ public class SingularityCmdLineArgsMigration extends ZkDataMigration {
     }
   }
 
-  private List<String> getCmdLineArgs(Optional<String> cmdLineArgs) {
-    return cmdLineArgs.isPresent() ? Collections.singletonList(cmdLineArgs.get()) : Collections.<String> emptyList();
+  private Optional<List<String>> getCmdLineArgs(Optional<String> cmdLineArgs) {
+    return cmdLineArgs.isPresent() ? Optional.of(Collections.singletonList(cmdLineArgs.get())) : Optional.<List<String>> absent();
   }
 
   private Optional<String> getCmdLineArgs(SingularityPendingTaskId pendingTaskId) throws Exception {

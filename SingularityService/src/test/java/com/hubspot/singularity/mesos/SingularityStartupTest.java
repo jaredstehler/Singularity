@@ -10,9 +10,9 @@ import com.google.inject.Inject;
 import com.hubspot.singularity.RequestType;
 import com.hubspot.singularity.SingularityPendingRequest;
 import com.hubspot.singularity.SingularityPendingRequest.PendingType;
+import com.hubspot.singularity.scheduler.SingularitySchedulerTestBase;
 import com.hubspot.singularity.SingularityPendingTask;
 import com.hubspot.singularity.SingularityRequestBuilder;
-import com.hubspot.singularity.SingularitySchedulerTestBase;
 import com.hubspot.singularity.SingularityTask;
 
 public class SingularityStartupTest extends SingularitySchedulerTestBase {
@@ -111,7 +111,7 @@ public class SingularityStartupTest extends SingularitySchedulerTestBase {
     boolean caughtException = false;
 
     try {
-      requestResource.scheduleImmediately(requestId, Optional.<String> absent(), null);
+      requestResource.scheduleImmediately(requestId);
     } catch (Exception e) {
       caughtException = true;
     }
@@ -122,7 +122,7 @@ public class SingularityStartupTest extends SingularitySchedulerTestBase {
   }
 
   @Test
-  public void testOneOffDoesntGetRescheduled() {
+  public void testOnDemandDoesntGetRescheduled() {
     saveRequest(new SingularityRequestBuilder(requestId, RequestType.ON_DEMAND).build());
     deploy(firstDeployId);
     deployChecker.checkDeploys();
@@ -135,11 +135,28 @@ public class SingularityStartupTest extends SingularitySchedulerTestBase {
     Assert.assertTrue(requestManager.getPendingRequests().isEmpty());
     Assert.assertTrue(taskManager.getPendingTaskIds().isEmpty());
 
-    requestManager.addToPendingQueue(new SingularityPendingRequest(requestId, firstDeployId, System.currentTimeMillis(), PendingType.ONEOFF));
+    requestManager.addToPendingQueue(new SingularityPendingRequest(requestId, firstDeployId, System.currentTimeMillis(), Optional.<String> absent(), PendingType.ONEOFF, Optional.<Boolean> absent(), Optional.<String> absent()));
 
     startup.checkSchedulerForInconsistentState();
 
     Assert.assertTrue(requestManager.getPendingRequests().get(0).getPendingType() == PendingType.ONEOFF);
   }
 
+  @Test
+  public void testRunOnceDoesntGetRescheduled() {
+    saveRequest(new SingularityRequestBuilder(requestId, RequestType.RUN_ONCE).build());
+    deploy(firstDeployId);
+    deployChecker.checkDeploys();
+
+    scheduler.drainPendingQueue(stateCacheProvider.get());
+    resourceOffers();
+
+    Assert.assertTrue(requestManager.getPendingRequests().isEmpty());
+    Assert.assertTrue(taskManager.getPendingTaskIds().isEmpty());
+
+    startup.checkSchedulerForInconsistentState();
+
+    // assert that SingularityStartup does not enqueue a SingularityPendingRequest (pendingType=STARTUP) for the RUN_ONCE request
+    Assert.assertTrue(requestManager.getPendingRequests().isEmpty());
+  }
 }

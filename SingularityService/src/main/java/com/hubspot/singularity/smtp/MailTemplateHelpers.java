@@ -3,6 +3,10 @@ package com.hubspot.singularity.smtp;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.TimeZone;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 
 import org.apache.commons.lang3.text.WordUtils;
 import org.apache.commons.lang3.time.DateFormatUtils;
@@ -16,75 +20,90 @@ import com.google.inject.Singleton;
 import com.hubspot.mesos.MesosUtils;
 import com.hubspot.mesos.json.MesosFileChunkObject;
 import com.hubspot.singularity.ExtendedTaskState;
+import com.hubspot.singularity.SingularityEmailType;
 import com.hubspot.singularity.SingularityTask;
 import com.hubspot.singularity.SingularityTaskHistoryUpdate;
+import com.hubspot.singularity.SingularityTaskMetadata;
 import com.hubspot.singularity.SingularityTaskId;
-import com.hubspot.singularity.config.EmailConfigurationEnums;
 import com.hubspot.singularity.config.SMTPConfiguration;
 import com.hubspot.singularity.config.SingularityConfiguration;
 import com.hubspot.singularity.data.SandboxManager;
 
-/**
- * Helpers that get passed to the Jade renderer. These helpers manipulate information given to the
- * Jade context into different formats.
- */
 @Singleton
 public class MailTemplateHelpers {
-  private static final Logger LOG = LoggerFactory.getLogger(SingularityMailer.class);
 
-  /**
-   * For fetching log files from mesos slaves.
-   */
-  private final SandboxManager sandboxManager;
+  private static final Logger LOG = LoggerFactory.getLogger(MailTemplateHelpers.class);
 
-  private static final String TASK_DATE_PATTERN = "MMM dd HH:mm:ss";
   private static final String TASK_LINK_FORMAT = "%s/task/%s";
   private static final String REQUEST_LINK_FORMAT = "%s/request/%s";
   private static final String LOG_LINK_FORMAT = "%s/task/%s/tail/%s";
+  private static final String DEFAULT_TIMESTAMP_FORMAT = "MMM dd h:mm:ss a zzz";
 
-  /**
-   * Used to generate links, if no String is present, helpers will return empty Strings.
-   */
+  private final SandboxManager sandboxManager;
+
   private final Optional<String> uiBaseUrl;
   private final Optional<SMTPConfiguration> smtpConfiguration;
+  private final Optional<String> taskDatePattern;
+  private final Optional<TimeZone> timeZone;
 
   @Inject
   public MailTemplateHelpers(SandboxManager sandboxManager, SingularityConfiguration singularityConfiguration) {
     this.uiBaseUrl = singularityConfiguration.getUiConfiguration().getBaseUrl();
     this.sandboxManager = sandboxManager;
     this.smtpConfiguration = singularityConfiguration.getSmtpConfiguration();
+    if (this.smtpConfiguration.isPresent()) {
+      this.taskDatePattern = Optional.of(this.smtpConfiguration.get().getMailerDatePattern());
+      this.timeZone = Optional.of(this.smtpConfiguration.get().getMailerTimeZone());
+    } else {
+      this.taskDatePattern = Optional.absent();
+      this.timeZone = Optional.absent();
+    }
   }
 
-  /**
-   * Format taskHistory information into a Map for Jade to generate a table from.
-   *
-   * @param taskHistory task history information.
-   * @return map for Jade to pull "date", "update", and "message" information from.
-   */
+  public String humanizeTimestamp(long timestamp) {
+    if (taskDatePattern.isPresent() && timeZone.isPresent()) {
+      return DateFormatUtils.format(timestamp, taskDatePattern.get(), timeZone.get());
+    } else if (taskDatePattern.isPresent()) {
+      return DateFormatUtils.formatUTC(timestamp, taskDatePattern.get());
+    } else if (timeZone.isPresent()) {
+      return DateFormatUtils.format(timestamp, DEFAULT_TIMESTAMP_FORMAT, timeZone.get());
+    } else {
+      return DateFormatUtils.format(timestamp, DEFAULT_TIMESTAMP_FORMAT);
+    }
+  }
+
+  public List<SingularityMailTaskMetadata> getJadeTaskMetadata(Collection<SingularityTaskMetadata> taskMetadata) {
+    List<SingularityMailTaskMetadata> output = Lists.newArrayListWithCapacity(taskMetadata.size());
+
+    for (SingularityTaskMetadata metadataElement : taskMetadata) {
+      output.add(
+          new SingularityMailTaskMetadata(
+              humanizeTimestamp(metadataElement.getTimestamp()),
+              metadataElement.getType(),
+              metadataElement.getTitle(),
+              metadataElement.getUser().or(""),
+              metadataElement.getMessage().or(""),
+              metadataElement.getLevel().toString()));
+    }
+
+    return output;
+  }
+
   public List<SingularityMailTaskHistoryUpdate> getJadeTaskHistory(Collection<SingularityTaskHistoryUpdate> taskHistory) {
     List<SingularityMailTaskHistoryUpdate> output = Lists.newArrayListWithCapacity(taskHistory.size());
 
     for (SingularityTaskHistoryUpdate taskUpdate : taskHistory) {
       output.add(
           new SingularityMailTaskHistoryUpdate(
-              DateFormatUtils.formatUTC(taskUpdate.getTimestamp(), TASK_DATE_PATTERN), // date
-              WordUtils.capitalize(taskUpdate.getTaskState().getDisplayName()), // update
-              taskUpdate.getStatusMessage().or(""))); // message
+              humanizeTimestamp(taskUpdate.getTimestamp()),
+              WordUtils.capitalize(taskUpdate.getTaskState().getDisplayName()),
+              taskUpdate.getStatusMessage().or("")));
     }
 
     return output;
   }
 
-  /**
-   * Format task logs into a List of SingularityMailTaskLog for Jade to interpret easily.
-   *
-   * @param taskId    task to get logs from.
-   * @param task      task object to get logs from.
-   * @param directory directory to read log from.
-   * @return Jade interpretable List of SingularityMailTaskLog.
-   */
   public List<SingularityMailTaskLog> getTaskLogs(SingularityTaskId taskId, Optional<SingularityTask> task, Optional<String> directory) {
-    // No configuration for SMTP, what did you do to execute this?
     if (!smtpConfiguration.isPresent()) {
       LOG.warn("Tried to getTaskLogs for sending email without SMTP configuration set.");
       return Collections.emptyList();
@@ -99,24 +118,51 @@ public class MailTemplateHelpers {
 
       logTails.add(
           new SingularityMailTaskLog(
-              filePath, // path
-              getFileName(filePath), // file
-              getSingularityLogLink(filePath, taskId.getId()), // link
-              getTaskLogFile(taskId, filePath, task, directory).or(""))); // log
+              filePath,
+              getFileName(filePath),
+              getSingularityLogLink(filePath, taskId.getId()),
+              getTaskLogFile(taskId, filePath, task, directory).or("")));
     }
 
     return logTails;
   }
 
-  /**
-   * Get a log file from a remote mesos slave.
-   *
-   * @param taskId    id of the task.
-   * @param filename  log file name.
-   * @param task      required for method to retrieve task logs properly.
-   * @param directory directory to read log from.
-   * @return string of the log file.
-   */
+  private Optional<Pattern> getLogErrorRegex(final Optional<SingularityTask> task) {
+    Optional<String> maybeRegex;
+    SMTPConfiguration configuration = smtpConfiguration.get();
+    if (task.isPresent() && task.get().getTaskRequest().getRequest().getTaskLogErrorRegex().isPresent()
+    && !task.get().getTaskRequest().getRequest().getTaskLogErrorRegex().get().equals("")) {
+      maybeRegex = task.get().getTaskRequest().getRequest().getTaskLogErrorRegex();
+    } else {
+      maybeRegex = configuration.getTaskLogErrorRegex();
+    }
+    if (!maybeRegex.isPresent()) {
+      LOG.trace("No task log error regex provided.");
+      return Optional.absent();
+    }
+    String regex = maybeRegex.get();
+
+    Boolean caseSensitive;
+    if (task.isPresent() && task.get().getTaskRequest().getRequest().getTaskLogErrorRegexCaseSensitive().isPresent()) {
+      caseSensitive = task.get().getTaskRequest().getRequest().getTaskLogErrorRegexCaseSensitive().get();
+    } else if (configuration.getTaskLogErrorRegexCaseSensitive().isPresent()) {
+      caseSensitive = configuration.getTaskLogErrorRegexCaseSensitive().get();
+    } else {
+      caseSensitive = true;
+    }
+
+    try {
+      if (caseSensitive) {
+        return Optional.of(Pattern.compile(regex));
+      } else {
+        return Optional.of(Pattern.compile(regex, Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE));
+      }
+    } catch (PatternSyntaxException e) {
+      LOG.error("Invalid task log error regex supplied: \"{}\". Received exception: {}", regex, e);
+      return Optional.absent();
+    }
+  }
+
   private Optional<String> getTaskLogFile(final SingularityTaskId taskId, final String filename, final Optional<SingularityTask> task, final Optional<String> directory) {
     if (!smtpConfiguration.isPresent()) {
       LOG.warn("Tried to get a task log file without SMTP configuration set up.");
@@ -135,8 +181,15 @@ public class MailTemplateHelpers {
 
     final Optional<MesosFileChunkObject> logChunkObject;
 
+    LOG.trace("Getting offset (maybe) for task {} file {}", taskId.getId(), fullPath);
+    Optional<Long> maybeOffset = getMaybeTaskLogReadOffset(slaveHostname, fullPath, logLength, task);
+
+    if (!maybeOffset.isPresent()) {
+      LOG.trace("Failed to find logs or error finding logs for task {} file {}", taskId.getId(), fullPath);
+      return Optional.absent();
+    }
     try {
-      logChunkObject = sandboxManager.read(slaveHostname, fullPath, Optional.of(0L), Optional.of(logLength));
+      logChunkObject = sandboxManager.read(slaveHostname, fullPath, maybeOffset, Optional.of(logLength));
     } catch (RuntimeException e) {
       LOG.error("Sandboxmanager failed to read {}/{} on slave {}", directory.get(), filename, slaveHostname, e);
       return Optional.absent();
@@ -145,27 +198,80 @@ public class MailTemplateHelpers {
     if (logChunkObject.isPresent()) {
       return Optional.of(logChunkObject.get().getData());
     } else {
-      LOG.error("Singularity mailer failed to get {} log for {} task ", filename, taskId.getId());
+      LOG.error("Failed to get {} log for {}", filename, taskId.getId());
       return Optional.absent();
     }
   }
 
-  /**
-   * Get the file name from the file path.
-   *
-   * @param path file path string.
-   */
+  // Searches through the file, looking for first error
+  private Optional<Long> getMaybeTaskLogReadOffset(final String slaveHostname, final String fullPath, final Long logLength, Optional<SingularityTask> task) {
+    long offset = 0;
+    long maxOffset = smtpConfiguration.get().getMaxTaskLogSearchOffset();
+    Optional<Pattern> maybePattern = getLogErrorRegex(task);
+    Pattern pattern;
+    if (maybePattern.isPresent()) {
+      pattern = maybePattern.get();
+    } else {
+      LOG.trace("Could not get regex pattern. Reading from bottom of file instead.");
+      return getMaybeTaskLogEndOfFileOffset(slaveHostname, fullPath, logLength);
+    }
+    long length = logLength + pattern.toString().length(); // Get extra so that we can be sure to find the error
+    Optional<MesosFileChunkObject> logChunkObject;
+    Optional<MesosFileChunkObject> previous = Optional.absent();
+
+    while (offset <= maxOffset) {
+      try {
+        logChunkObject = sandboxManager.read(slaveHostname, fullPath, Optional.of(offset), Optional.of(length));
+      } catch (RuntimeException e) {
+        LOG.error("Sandboxmanager failed to read {} on slave {}", fullPath, slaveHostname, e);
+        return Optional.absent();
+      }
+      if (logChunkObject.isPresent()) {
+        if (logChunkObject.get().getData().equals("")) { // Passed end of file
+          if (previous.isPresent()) { // If there was any log, get the bottom bytes of it
+            long end = previous.get().getOffset() + previous.get().getData().length();
+            return Optional.of(end - logLength);
+          }
+          return Optional.absent();
+        }
+        Matcher matcher = pattern.matcher(logChunkObject.get().getData());
+        if (matcher.find()) {
+          return Optional.of(offset + matcher.start());
+        } else {
+          offset += logLength;
+        }
+      } else { // Couldn't read anything
+        LOG.error("Failed to read log file {}", fullPath);
+        return Optional.absent();
+      }
+      previous = logChunkObject;
+    }
+    LOG.trace("Searched through the first {} bytes of file {} and didn't find an error. Tailing bottom of file instead", maxOffset, fullPath);
+    return getMaybeTaskLogEndOfFileOffset(slaveHostname, fullPath, logLength);
+  }
+
+  private Optional<Long> getMaybeTaskLogEndOfFileOffset(final String slaveHostname, final String fullPath, final long logLength) {
+    Optional<MesosFileChunkObject> logChunkObject;
+    try {
+      logChunkObject = sandboxManager.read(slaveHostname, fullPath, Optional.<Long>absent(), Optional.<Long>absent());
+    } catch (RuntimeException e) {
+      LOG.error("Sandboxmanager failed to read {} on slave {}", fullPath, slaveHostname, e);
+      return Optional.absent();
+    }
+    if (logChunkObject.isPresent()) {
+      return Optional.of(Math.max(0, logChunkObject.get().getOffset() - logLength));
+    } else {
+      LOG.error("Failed to get offset for log file {}", fullPath);
+      return Optional.absent();
+    }
+
+  }
+
   public String getFileName(String path) {
     String[] splitPath = path.split("/");
     return splitPath[splitPath.length - 1];
   }
 
-  /**
-   * Get a working link to the SingularityUI page for the given taskId.
-   *
-   * @param taskId which task to link to.
-   * @return link.
-   */
   public String getSingularityTaskLink(String taskId) {
     if (!uiBaseUrl.isPresent()) {
       return "";
@@ -174,12 +280,6 @@ public class MailTemplateHelpers {
     return String.format(TASK_LINK_FORMAT, uiBaseUrl.get(), taskId);
   }
 
-  /**
-   * Get a working link to the SingularityUI page for the given requestId.
-   *
-   * @param requestId which request to go to.
-   * @return link.
-   */
   public String getSingularityRequestLink(String requestId) {
     if (!uiBaseUrl.isPresent()) {
       return "";
@@ -188,13 +288,6 @@ public class MailTemplateHelpers {
     return String.format(REQUEST_LINK_FORMAT, uiBaseUrl.get(), requestId);
   }
 
-  /**
-   * Get a working link to the SingularityUI task log tail page.
-   *
-   * @param logPath path of the log file.
-   * @param taskId  under which task should this look to find the log file.
-   * @return link.
-   */
   public String getSingularityLogLink(String logPath, String taskId) {
     if (!uiBaseUrl.isPresent()) {
       return "";
@@ -203,17 +296,8 @@ public class MailTemplateHelpers {
     return String.format(LOG_LINK_FORMAT, uiBaseUrl.get(), taskId, logPath);
   }
 
-  /**
-   * Get a subject line for the task email based on the task history.
-   *
-   * @param taskId  SingularityTaskId.
-   * @param state   detailed task state information.
-   * @param type    email purpose.
-   * @param history task history.
-   * @return subject line string.
-   */
-  public String getSubjectForTaskHistory(SingularityTaskId taskId, ExtendedTaskState state, EmailConfigurationEnums.EmailType type, Collection<SingularityTaskHistoryUpdate> history) {
-    if (type == EmailConfigurationEnums.EmailType.TASK_SCHEDULED_OVERDUE_TO_FINISH) {
+  public String getSubjectForTaskHistory(SingularityTaskId taskId, ExtendedTaskState state, SingularityEmailType type, Collection<SingularityTaskHistoryUpdate> history) {
+    if (type == SingularityEmailType.TASK_SCHEDULED_OVERDUE_TO_FINISH) {
       return String.format("Task is overdue to finish (%s)", taskId.toString());
     }
 
@@ -224,12 +308,6 @@ public class MailTemplateHelpers {
     return String.format("Task %s (%s)", state.getDisplayName(), taskId.toString());
   }
 
-  /**
-   * From a task's history, determine if it ran.
-   *
-   * @param history task history.
-   * @return whether the task ran.
-   */
   public boolean didTaskRun(Collection<SingularityTaskHistoryUpdate> history) {
     SingularityTaskHistoryUpdate.SimplifiedTaskState simplifiedTaskState = SingularityTaskHistoryUpdate.getCurrentState(history);
 

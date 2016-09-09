@@ -16,6 +16,8 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Optional;
 import com.hubspot.mesos.MesosUtils;
+import com.hubspot.singularity.executor.SingularityExecutorLogrotateFrequency;
+import com.hubspot.singularity.executor.models.ThreadCheckerType;
 import com.hubspot.singularity.executor.shells.SingularityExecutorShellCommandDescriptor;
 import com.hubspot.singularity.runner.base.configuration.BaseRunnerConfiguration;
 import com.hubspot.singularity.runner.base.configuration.Configuration;
@@ -49,11 +51,11 @@ public class SingularityExecutorConfiguration extends BaseRunnerConfiguration {
 
   @Min(0)
   @JsonProperty
-  private long idleExecutorShutdownWaitMillis = TimeUnit.SECONDS.toMillis(30);
+  private long idleExecutorShutdownWaitMillis = TimeUnit.SECONDS.toMillis(10);
 
   @Min(0)
   @JsonProperty
-  private long stopDriverAfterMillis = TimeUnit.SECONDS.toMillis(5);
+  private long stopDriverAfterMillis = TimeUnit.SECONDS.toMillis(1);
 
   @NotEmpty
   @DirectoryExists
@@ -119,14 +121,14 @@ public class SingularityExecutorConfiguration extends BaseRunnerConfiguration {
 
   @NotNull
   @JsonProperty
-  private List<String> logrotateAdditionalFiles = Collections.emptyList();
+  private List<SingularityExecutorLogrotateAdditionalFile> logrotateAdditionalFiles = Collections.emptyList();
 
   /**
    * Extra files to backup to S3 besides the service log.
    */
   @NotNull
   @JsonProperty
-  private List<String> s3UploaderAdditionalFiles = Collections.emptyList();
+  private List<SingularityExecutorS3UploaderAdditionalFile> s3UploaderAdditionalFiles = Collections.emptyList();
 
   @Min(1)
   @JsonProperty
@@ -150,6 +152,10 @@ public class SingularityExecutorConfiguration extends BaseRunnerConfiguration {
   @JsonProperty
   private long localDownloadServiceTimeoutMillis = TimeUnit.MINUTES.toMillis(3);
 
+  @Min(1)
+  @JsonProperty
+  private int localDownloadServiceMaxConnections = 25;
+
   @NotNull
   @JsonProperty
   private Optional<Integer> maxTaskThreads = Optional.absent();
@@ -157,6 +163,7 @@ public class SingularityExecutorConfiguration extends BaseRunnerConfiguration {
   @JsonProperty
   private String dockerPrefix = "se-";
 
+  @Min(5)
   @JsonProperty
   private int dockerStopTimeout = 15;
 
@@ -186,20 +193,46 @@ public class SingularityExecutorConfiguration extends BaseRunnerConfiguration {
   @JsonProperty
   public List<SingularityExecutorShellCommandDescriptor> shellCommands = Collections.emptyList();
 
+  @NotEmpty
   @JsonProperty
-  public String shellCommandOutFile = "executor.commands.{TIMESTAMP}.log";
+  public String shellCommandOutFile = "executor.commands.{NAME}.{TIMESTAMP}.log";
 
+  @NotEmpty
   @JsonProperty
   private String shellCommandPidPlaceholder = "{PID}";
 
+  @NotEmpty
   @JsonProperty
   private String shellCommandUserPlaceholder = "{USER}";
 
+  @NotEmpty
   @JsonProperty
   private String shellCommandPidFile = ".task-pid";
 
   @JsonProperty
   private List<String> shellCommandPrefix = Collections.emptyList();
+
+  @JsonProperty
+  private int dockerClientTimeLimitSeconds = 300;
+
+  @JsonProperty
+  private int dockerClientConnectionPoolSize = 5;
+
+  @JsonProperty
+  private int maxDockerPullAttempts = 2;
+
+  @JsonProperty
+  private Optional<SingularityExecutorDockerAuthConfig> dockerAuthConfig = Optional.absent();
+
+  @JsonProperty
+  private ThreadCheckerType threadCheckerType = ThreadCheckerType.PS;
+
+  @JsonProperty
+  private SingularityExecutorLogrotateFrequency logrotateFrequency = SingularityExecutorLogrotateFrequency.DAILY;
+
+  @NotEmpty
+  @JsonProperty
+  private String cronDirectory = "/etc/cron.d";
 
   public SingularityExecutorConfiguration() {
     super(Optional.of("singularity-executor.log"));
@@ -221,19 +254,19 @@ public class SingularityExecutorConfiguration extends BaseRunnerConfiguration {
     this.shellCommandUserPlaceholder = shellCommandUserPlaceholder;
   }
 
-  public List<String> getLogrotateAdditionalFiles() {
+  public List<SingularityExecutorLogrotateAdditionalFile> getLogrotateAdditionalFiles() {
     return logrotateAdditionalFiles;
   }
 
-  public void setLogrotateAdditionalFiles(List<String> logrotateAdditionalFiles) {
+  public void setLogrotateAdditionalFiles(List<SingularityExecutorLogrotateAdditionalFile> logrotateAdditionalFiles) {
     this.logrotateAdditionalFiles = logrotateAdditionalFiles;
   }
 
-  public List<String> getS3UploaderAdditionalFiles() {
+  public List<SingularityExecutorS3UploaderAdditionalFile> getS3UploaderAdditionalFiles() {
     return s3UploaderAdditionalFiles;
   }
 
-  public void setS3UploaderAdditionalFiles(List<String> s3UploaderAdditionalFiles) {
+  public void setS3UploaderAdditionalFiles(List<SingularityExecutorS3UploaderAdditionalFile> s3UploaderAdditionalFiles) {
     this.s3UploaderAdditionalFiles = s3UploaderAdditionalFiles;
   }
 
@@ -263,6 +296,14 @@ public class SingularityExecutorConfiguration extends BaseRunnerConfiguration {
 
   public long getIdleExecutorShutdownWaitMillis() {
     return idleExecutorShutdownWaitMillis;
+  }
+
+  public int getLocalDownloadServiceMaxConnections() {
+    return localDownloadServiceMaxConnections;
+  }
+
+  public void setLocalDownloadServiceMaxConnections(int localDownloadServiceMaxConnections) {
+    this.localDownloadServiceMaxConnections = localDownloadServiceMaxConnections;
   }
 
   public long getStopDriverAfterMillis() {
@@ -577,6 +618,62 @@ public class SingularityExecutorConfiguration extends BaseRunnerConfiguration {
     this.shellCommandPrefix = shellCommandPrefix;
   }
 
+  public int getDockerClientTimeLimitSeconds() {
+    return dockerClientTimeLimitSeconds;
+  }
+
+  public void setDockerClientTimeLimitSeconds(int dockerClientTimeLimitMs) {
+    this.dockerClientTimeLimitSeconds = dockerClientTimeLimitMs;
+  }
+
+  public int getDockerClientConnectionPoolSize() {
+    return dockerClientConnectionPoolSize;
+  }
+
+  public void setDockerClientConnectionPoolSize(int dockerClientConnectionPoolSize) {
+    this.dockerClientConnectionPoolSize = dockerClientConnectionPoolSize;
+  }
+
+  public int getMaxDockerPullAttempts() {
+    return maxDockerPullAttempts;
+  }
+
+  public void setMaxDockerPullAttempts(int maxDockerPullAttempts) {
+    this.maxDockerPullAttempts = maxDockerPullAttempts;
+  }
+
+  public Optional<SingularityExecutorDockerAuthConfig> getDockerAuthConfig() {
+    return dockerAuthConfig;
+  }
+
+  public void setDockerAuthConfig(Optional<SingularityExecutorDockerAuthConfig> dockerAuthConfig) {
+    this.dockerAuthConfig = dockerAuthConfig;
+  }
+
+  public ThreadCheckerType getThreadCheckerType() {
+    return threadCheckerType;
+  }
+
+  public void setThreadCheckerType(ThreadCheckerType threadCheckerType) {
+    this.threadCheckerType = threadCheckerType;
+  }
+
+  public SingularityExecutorLogrotateFrequency getLogrotateFrequency() {
+    return logrotateFrequency;
+  }
+
+  public void setLogrotateFrequency(SingularityExecutorLogrotateFrequency logrotateFrequency) {
+    this.logrotateFrequency = logrotateFrequency;
+  }
+
+  public String getCronDirectory() {
+    return cronDirectory;
+  }
+
+  public void setCronDirectory(String cronDirectory) {
+    this.cronDirectory = cronDirectory;
+  }
+
   @Override
   public String toString() {
     return "SingularityExecutorConfiguration[" +
@@ -600,6 +697,7 @@ public class SingularityExecutorConfiguration extends BaseRunnerConfiguration {
             ", logrotateConfDirectory='" + logrotateConfDirectory + '\'' +
             ", logrotateToDirectory='" + logrotateToDirectory + '\'' +
             ", logrotateMaxageDays=" + logrotateMaxageDays +
+            ", localDownloadServiceMaxConnections=" + localDownloadServiceMaxConnections +
             ", logrotateCount=" + logrotateCount +
             ", logrotateDateformat='" + logrotateDateformat + '\'' +
             ", logrotateExtrasDateformat='" + logrotateExtrasDateformat + '\'' +
@@ -626,6 +724,11 @@ public class SingularityExecutorConfiguration extends BaseRunnerConfiguration {
             ", shellCommandUserPlaceholder='" + shellCommandUserPlaceholder + '\'' +
             ", shellCommandPidFile='" + shellCommandPidFile + '\'' +
             ", shellCommandPrefix='" + shellCommandPrefix + '\'' +
+            ", dockerClientTimeLimitMs='" + dockerClientTimeLimitSeconds + '\'' +
+            ", dockerClientConnectionPoolSize='" + dockerClientConnectionPoolSize + '\'' +
+            ", threadCheckerType='" + threadCheckerType + '\'' +
+            ", logrotateFrequency='" + logrotateFrequency + '\'' +
+            ", cronDirectory='" + cronDirectory + '\'' +
             ']';
   }
 }

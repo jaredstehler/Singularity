@@ -5,7 +5,9 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
+import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
+import com.google.common.base.Optional;
 import com.hubspot.singularity.SingularityService;
 import com.hubspot.singularity.config.SingularityConfiguration;
 
@@ -24,15 +26,18 @@ public class IndexView extends View {
 
   private final Boolean hideNewDeployButton;
   private final Boolean hideNewRequestButton;
+  private final Boolean loadBalancingEnabled;
 
   private final String title;
 
   private final Integer slaveHttpPort;
   private final Integer slaveHttpsPort;
 
+  private final int defaultBounceExpirationMinutes;
   private final long defaultHealthcheckIntervalSeconds;
   private final long defaultHealthcheckTimeoutSeconds;
   private final long defaultDeployHealthTimeoutSeconds;
+  private final Integer defaultHealthcheckMaxRetries;
 
   private final String runningTaskLogPath;
   private final String finishedTaskLogPath;
@@ -47,7 +52,13 @@ public class IndexView extends View {
 
   private final String timestampFormat;
 
+  private final boolean showTaskDiskResource;
+
   private final String timestampWithSecondsFormat;
+
+  private final String redirectOnUnauthorizedUrl;
+
+  private final String extraScript;
 
   public IndexView(String singularityUriBase, String appRoot, SingularityConfiguration configuration, ObjectMapper mapper) {
     super("index.mustache");
@@ -71,21 +82,28 @@ public class IndexView extends View {
 
     this.hideNewDeployButton = configuration.getUiConfiguration().isHideNewDeployButton();
     this.hideNewRequestButton = configuration.getUiConfiguration().isHideNewRequestButton();
+    this.loadBalancingEnabled = !Strings.isNullOrEmpty(configuration.getLoadBalancerUri());
 
-    this.navColor = configuration.getUiConfiguration().getNavColor();
+    this.navColor = configuration.getUiConfiguration().getNavColor().or("");
 
+    this.defaultBounceExpirationMinutes = configuration.getDefaultBounceExpirationMinutes();
     this.defaultHealthcheckIntervalSeconds = configuration.getHealthcheckIntervalSeconds();
     this.defaultHealthcheckTimeoutSeconds = configuration.getHealthcheckTimeoutSeconds();
     this.defaultDeployHealthTimeoutSeconds = configuration.getDeployHealthyBySeconds();
+    this.defaultHealthcheckMaxRetries = configuration.getHealthcheckMaxRetries().or(0);
 
     this.runningTaskLogPath = configuration.getUiConfiguration().getRunningTaskLogPath();
     this.finishedTaskLogPath = configuration.getUiConfiguration().getFinishedTaskLogPath();
 
+    this.showTaskDiskResource = configuration.getUiConfiguration().isShowTaskDiskResource();
+
     this.commonHostnameSuffixToOmit = configuration.getCommonHostnameSuffixToOmit().or("");
 
-    this.taskS3LogOmitPrefix = configuration.getUiConfiguration().getTaskS3LogOmitPrefix();
+    this.taskS3LogOmitPrefix = configuration.getUiConfiguration().getTaskS3LogOmitPrefix().or("");
 
     this.warnIfScheduledJobIsRunningPastNextRunPct = configuration.getWarnIfScheduledJobIsRunningPastNextRunPct();
+
+    this.redirectOnUnauthorizedUrl = configuration.getUiConfiguration().getRedirectOnUnauthorizedUrl().or("");
 
     ObjectWriter ow = mapper.writer().withDefaultPrettyPrinter();
     try {
@@ -97,6 +115,8 @@ public class IndexView extends View {
     this.timestampFormat = configuration.getUiConfiguration().getTimestampFormat();
 
     this.timestampWithSecondsFormat = configuration.getUiConfiguration().getTimestampWithSecondsFormat();
+
+    this.extraScript = configuration.getUiConfiguration().getExtraScript().orNull();
   }
 
   public String getAppRoot() {
@@ -147,6 +167,14 @@ public class IndexView extends View {
     return hideNewRequestButton;
   }
 
+  public Boolean getLoadBalancingEnabled() {
+    return loadBalancingEnabled;
+  }
+
+  public int getDefaultBounceExpirationMinutes() {
+    return defaultBounceExpirationMinutes;
+  }
+
   public long getDefaultHealthcheckIntervalSeconds() {
     return defaultHealthcheckIntervalSeconds;
   }
@@ -159,6 +187,10 @@ public class IndexView extends View {
     return defaultDeployHealthTimeoutSeconds;
   }
 
+  public Integer getDefaultHealthcheckMaxRetries() {
+    return defaultHealthcheckMaxRetries;
+  }
+
   public String getRunningTaskLogPath() {
     return runningTaskLogPath;
   }
@@ -169,6 +201,10 @@ public class IndexView extends View {
 
   public String getCommonHostnameSuffixToOmit() {
     return commonHostnameSuffixToOmit;
+  }
+
+  public Boolean isShowTaskDiskResource() {
+    return showTaskDiskResource;
   }
 
   public String getTaskS3LogOmitPrefix() {
@@ -191,6 +227,10 @@ public class IndexView extends View {
     return timestampWithSecondsFormat;
   }
 
+  public String getExtraScript() {
+    return extraScript;
+  }
+
   @Override
   public String toString() {
     return "IndexView[" +
@@ -206,17 +246,22 @@ public class IndexView extends View {
             ", title='" + title + '\'' +
             ", slaveHttpPort=" + slaveHttpPort +
             ", slaveHttpsPort=" + slaveHttpsPort +
+            ", defaultBounceExpirationMinutes=" + defaultBounceExpirationMinutes +
             ", defaultHealthcheckIntervalSeconds=" + defaultHealthcheckIntervalSeconds +
             ", defaultHealthcheckTimeoutSeconds=" + defaultHealthcheckTimeoutSeconds +
             ", defaultDeployHealthTimeoutSeconds=" + defaultDeployHealthTimeoutSeconds +
+            ", defaultHealthcheckMaxRetries=" + defaultHealthcheckMaxRetries +
             ", runningTaskLogPath='" + runningTaskLogPath + '\'' +
             ", finishedTaskLogPath='" + finishedTaskLogPath + '\'' +
             ", commonHostnameSuffixToOmit='" + commonHostnameSuffixToOmit + '\'' +
             ", taskS3LogOmitPrefix='" + taskS3LogOmitPrefix + '\'' +
             ", warnIfScheduledJobIsRunningPastNextRunPct=" + warnIfScheduledJobIsRunningPastNextRunPct +
             ", shellCommands='" + shellCommands + '\'' +
+            ", showTaskDiskResource=" + showTaskDiskResource +
             ", timestampFormat='" + timestampFormat + '\'' +
             ", timestampWithSecondsFormat='" + timestampWithSecondsFormat + '\'' +
+            ", redirectOnUnauthorizedUrl='" + redirectOnUnauthorizedUrl + '\'' +
+            ", extraScript='" + extraScript + '\'' +
             ']';
   }
 }

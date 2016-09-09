@@ -5,14 +5,17 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 
 import org.slf4j.Logger;
 
 import com.google.common.collect.ImmutableList;
 import com.hubspot.singularity.executor.config.SingularityExecutorConfiguration;
+import com.hubspot.singularity.executor.utils.DockerUtils;
+import com.hubspot.singularity.runner.base.shared.ExceptionChainParser;
 import com.hubspot.singularity.runner.base.shared.SimpleProcessManager;
 import com.spotify.docker.client.ContainerNotFoundException;
-import com.spotify.docker.client.DockerClient;
+import com.spotify.docker.client.DockerException;
 import com.spotify.docker.client.messages.ContainerInfo;
 
 public class SingularityExecutorTaskCleanup {
@@ -21,14 +24,14 @@ public class SingularityExecutorTaskCleanup {
   private final SingularityExecutorTaskLogManager taskLogManager;
   private final SingularityExecutorConfiguration configuration;
   private final Logger log;
-  private final DockerClient dockerClient;
+  private final DockerUtils dockerUtils;
 
-  public SingularityExecutorTaskCleanup(SingularityExecutorTaskLogManager taskLogManager, SingularityExecutorConfiguration configuration, SingularityExecutorTaskDefinition taskDefinition, Logger log, DockerClient dockerClient) {
+  public SingularityExecutorTaskCleanup(SingularityExecutorTaskLogManager taskLogManager, SingularityExecutorConfiguration configuration, SingularityExecutorTaskDefinition taskDefinition, Logger log, DockerUtils dockerUtils) {
     this.configuration = configuration;
     this.taskLogManager = taskLogManager;
     this.taskDefinition = taskDefinition;
     this.log = log;
-    this.dockerClient = dockerClient;
+    this.dockerUtils = dockerUtils;
   }
 
   public TaskCleanupResult cleanup(boolean cleanupTaskAppDirectory, boolean isDocker) {
@@ -36,7 +39,24 @@ public class SingularityExecutorTaskCleanup {
 
     boolean dockerCleanSuccess = true;
     if (isDocker) {
-      dockerCleanSuccess = cleanDocker();
+      try {
+        String containerName = String.format("%s%s", configuration.getDockerPrefix(), taskDefinition.getTaskId());
+        ContainerInfo containerInfo = dockerUtils.inspectContainer(containerName);
+        if (containerInfo.state().running()) {
+          dockerUtils.stopContainer(containerName, configuration.getDockerStopTimeout());
+        }
+        dockerUtils.removeContainer(containerName, true);
+      } catch (DockerException e) {
+        if (ExceptionChainParser.exceptionChainContains(e, ContainerNotFoundException.class)) {
+          log.trace("Container for task {} was already removed", taskDefinition.getTaskId());
+        } else {
+          log.error("Could not ensure removal of container", e);
+          dockerCleanSuccess = false;
+        }
+      } catch (Exception e) {
+        log.error("Could not ensure removal of container", e);
+        dockerCleanSuccess = false;
+      }
     }
 
     if (!Files.exists(taskDirectory)) {
@@ -111,24 +131,4 @@ public class SingularityExecutorTaskCleanup {
 
     return false;
   }
-
-  private boolean cleanDocker() {
-    String containerName = String.format("%s%s", configuration.getDockerPrefix(), taskDefinition.getTaskId());
-    try {
-      ContainerInfo containerInfo = dockerClient.inspectContainer(containerName);
-      if (containerInfo.state().running()) {
-        dockerClient.stopContainer(containerName, configuration.getDockerStopTimeout());
-      }
-      dockerClient.removeContainer(containerName);
-      log.info(String.format("Removed container %s", containerName));
-      return true;
-    } catch (ContainerNotFoundException e) {
-      log.info(String.format("Container %s was already removed", containerName));
-      return true;
-    } catch (Exception e) {
-      log.info(String.format("Could not ensure removal of docker container due to error %s", e));
-    }
-    return false;
-  }
-
 }

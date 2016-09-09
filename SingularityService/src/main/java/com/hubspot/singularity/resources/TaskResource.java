@@ -15,7 +15,6 @@ import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
@@ -34,8 +33,12 @@ import com.hubspot.mesos.client.MesosClient;
 import com.hubspot.mesos.json.MesosTaskMonitorObject;
 import com.hubspot.mesos.json.MesosTaskStatisticsObject;
 import com.hubspot.singularity.InvalidSingularityTaskIdException;
+import com.hubspot.singularity.SingularityAction;
 import com.hubspot.singularity.SingularityAuthorizationScope;
 import com.hubspot.singularity.SingularityCreateResult;
+import com.hubspot.singularity.SingularityKilledTaskIdRecord;
+import com.hubspot.singularity.SingularityPendingRequest;
+import com.hubspot.singularity.SingularityPendingRequest.PendingType;
 import com.hubspot.singularity.SingularityPendingTask;
 import com.hubspot.singularity.SingularityPendingTaskId;
 import com.hubspot.singularity.SingularityService;
@@ -43,23 +46,28 @@ import com.hubspot.singularity.SingularityShellCommand;
 import com.hubspot.singularity.SingularitySlave;
 import com.hubspot.singularity.SingularityTask;
 import com.hubspot.singularity.SingularityTaskCleanup;
-import com.hubspot.singularity.SingularityTaskCleanup.TaskCleanupType;
 import com.hubspot.singularity.SingularityTaskId;
+import com.hubspot.singularity.SingularityTaskMetadata;
 import com.hubspot.singularity.SingularityTaskRequest;
 import com.hubspot.singularity.SingularityTaskShellCommandRequest;
 import com.hubspot.singularity.SingularityTransformHelpers;
 import com.hubspot.singularity.SingularityUser;
+import com.hubspot.singularity.TaskCleanupType;
 import com.hubspot.singularity.WebExceptions;
+import com.hubspot.singularity.api.SingularityKillTaskRequest;
+import com.hubspot.singularity.api.SingularityTaskMetadataRequest;
 import com.hubspot.singularity.auth.SingularityAuthorizationHelper;
+import com.hubspot.singularity.config.SingularityTaskMetadataConfiguration;
 import com.hubspot.singularity.config.UIConfiguration;
 import com.hubspot.singularity.config.shell.ShellCommandDescriptor;
 import com.hubspot.singularity.config.shell.ShellCommandOptionDescriptor;
+import com.hubspot.singularity.data.RequestManager;
+import com.hubspot.singularity.data.SingularityValidator;
 import com.hubspot.singularity.data.SlaveManager;
 import com.hubspot.singularity.data.TaskManager;
 import com.hubspot.singularity.data.TaskRequestManager;
 import com.wordnik.swagger.annotations.Api;
 import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiParam;
 import com.wordnik.swagger.annotations.ApiResponse;
 import com.wordnik.swagger.annotations.ApiResponses;
 
@@ -70,23 +78,29 @@ public class TaskResource {
   public static final String PATH = SingularityService.API_BASE_PATH + "/tasks";
 
   private final TaskManager taskManager;
+  private final RequestManager requestManager;
   private final SlaveManager slaveManager;
   private final TaskRequestManager taskRequestManager;
   private final MesosClient mesosClient;
   private final SingularityAuthorizationHelper authorizationHelper;
   private final Optional<SingularityUser> user;
+  private final SingularityTaskMetadataConfiguration taskMetadataConfiguration;
   private final UIConfiguration uiConfiguration;
+  private final SingularityValidator validator;
 
   @Inject
-  public TaskResource(TaskRequestManager taskRequestManager, TaskManager taskManager, SlaveManager slaveManager, MesosClient mesosClient,
-                      SingularityAuthorizationHelper authorizationHelper, Optional<SingularityUser> user, UIConfiguration uiConfiguration) {
+  public TaskResource(TaskRequestManager taskRequestManager, TaskManager taskManager, SlaveManager slaveManager, MesosClient mesosClient, SingularityTaskMetadataConfiguration taskMetadataConfiguration,
+      SingularityAuthorizationHelper authorizationHelper, Optional<SingularityUser> user, UIConfiguration uiConfiguration, RequestManager requestManager, SingularityValidator validator) {
     this.taskManager = taskManager;
     this.taskRequestManager = taskRequestManager;
+    this.taskMetadataConfiguration = taskMetadataConfiguration;
     this.slaveManager = slaveManager;
     this.mesosClient = mesosClient;
+    this.requestManager = requestManager;
     this.authorizationHelper = authorizationHelper;
     this.user = user;
     this.uiConfiguration = uiConfiguration;
+    this.validator = validator;
   }
 
   @GET
@@ -179,6 +193,13 @@ public class TaskResource {
   }
 
   @GET
+  @Path("/killed")
+  @ApiOperation("Retrieve the list of killed tasks.")
+  public Iterable<SingularityKilledTaskIdRecord> getKilledTasks() {
+    return authorizationHelper.filterByAuthorizedRequests(user, taskManager.getKilledTaskIdRecords(), SingularityTransformHelpers.KILLED_TASK_ID_RECORD_TO_REQUEST_ID, SingularityAuthorizationScope.READ);
+  }
+
+  @GET
   @PropertyFiltering
   @Path("/lbcleanup")
   @ApiOperation("Retrieve the list of tasks being cleaned from load balancers.")
@@ -241,40 +262,128 @@ public class TaskResource {
 
   @DELETE
   @Path("/task/{taskId}")
+  public SingularityTaskCleanup killTask(@PathParam("taskId") String taskId) {
+    return killTask(taskId, Optional.<SingularityKillTaskRequest> absent());
+  }
+
+  @DELETE
+  @Path("/task/{taskId}")
+  @Consumes({ MediaType.APPLICATION_JSON })
   @ApiOperation(value="Attempt to kill task, optionally overriding an existing cleanup request (that may be waiting for replacement tasks to become healthy)", response=SingularityTaskCleanup.class)
   @ApiResponses({
     @ApiResponse(code=409, message="Task already has a cleanup request (can be overridden with override=true)")
   })
-  public SingularityTaskCleanup killTask(@PathParam("taskId") String taskId, @ApiParam("Pass true to save over any existing cleanup requests") @QueryParam("override") Optional<Boolean> override) {
+  public SingularityTaskCleanup killTask(@PathParam("taskId") String taskId, Optional<SingularityKillTaskRequest> killTaskRequest) {
     final SingularityTask task = checkActiveTask(taskId, SingularityAuthorizationScope.WRITE);
 
-    final SingularityTaskCleanup taskCleanup = new SingularityTaskCleanup(JavaUtils.getUserEmail(user), TaskCleanupType.USER_REQUESTED, System.currentTimeMillis(), task.getTaskId(), Optional.<String> absent());
+    Optional<String> message = Optional.absent();
+    Optional<Boolean> override = Optional.absent();
+    Optional<String> actionId = Optional.absent();
+    Optional<Boolean> waitForReplacementTask = Optional.absent();
+
+    if (killTaskRequest.isPresent()) {
+      actionId = killTaskRequest.get().getActionId();
+      message = killTaskRequest.get().getMessage();
+      override = killTaskRequest.get().getOverride();
+      waitForReplacementTask = killTaskRequest.get().getWaitForReplacementTask();
+    }
+
+    TaskCleanupType cleanupType = TaskCleanupType.USER_REQUESTED;
+
+    if (waitForReplacementTask.or(Boolean.FALSE)) {
+      cleanupType = TaskCleanupType.USER_REQUESTED_TASK_BOUNCE;
+      validator.checkActionEnabled(SingularityAction.BOUNCE_TASK);
+    } else {
+      validator.checkActionEnabled(SingularityAction.KILL_TASK);
+    }
+
+    final long now = System.currentTimeMillis();
+
+    final SingularityTaskCleanup taskCleanup;
 
     if (override.isPresent() && override.get().booleanValue()) {
+      cleanupType = TaskCleanupType.USER_REQUESTED_DESTROY;
+      taskCleanup = new SingularityTaskCleanup(JavaUtils.getUserEmail(user), cleanupType, now,
+        task.getTaskId(), message, actionId);
       taskManager.saveTaskCleanup(taskCleanup);
     } else {
+      taskCleanup = new SingularityTaskCleanup(JavaUtils.getUserEmail(user), cleanupType, now,
+        task.getTaskId(), message, actionId);
       SingularityCreateResult result = taskManager.createTaskCleanup(taskCleanup);
 
-      while (result == SingularityCreateResult.EXISTED) {
-        Optional<SingularityTaskCleanup> cleanup = taskManager.getTaskCleanup(taskId);
+      if (result == SingularityCreateResult.EXISTED && userRequestedKillTakesPriority(taskId)) {
+        taskManager.saveTaskCleanup(taskCleanup);
+      } else {
+        while (result == SingularityCreateResult.EXISTED) {
+          Optional<SingularityTaskCleanup> cleanup = taskManager.getTaskCleanup(taskId);
 
-        if (cleanup.isPresent()) {
-          throw new WebApplicationException(Response.status(Status.CONFLICT).entity(cleanup.get()).type(MediaType.APPLICATION_JSON).build());
+          if (cleanup.isPresent()) {
+            throw new WebApplicationException(Response.status(Status.CONFLICT).entity(cleanup.get()).type(MediaType.APPLICATION_JSON).build());
+          }
+
+          result = taskManager.createTaskCleanup(taskCleanup);
         }
-
-        result = taskManager.createTaskCleanup(taskCleanup);
       }
+    }
+
+    if (cleanupType == TaskCleanupType.USER_REQUESTED_TASK_BOUNCE) {
+      requestManager.addToPendingQueue(new SingularityPendingRequest(task.getTaskId().getRequestId(), task.getTaskId().getDeployId(), now, JavaUtils.getUserEmail(user),
+          PendingType.TASK_BOUNCE, Optional.<List<String>> absent(), Optional.<String> absent(), Optional.<Boolean> absent(), message, actionId));
     }
 
     return taskCleanup;
   }
 
+  boolean userRequestedKillTakesPriority(String taskId) {
+    Optional<SingularityTaskCleanup> existingCleanup = taskManager.getTaskCleanup(taskId);
+    if (!existingCleanup.isPresent()) {
+      return true;
+    }
+    return existingCleanup.get().getCleanupType() != TaskCleanupType.USER_REQUESTED_DESTROY;
+  }
 
   @Path("/commands/queued")
   @ApiOperation(value="Retrieve a list of all the shell commands queued for execution")
   public List<SingularityTaskShellCommandRequest> getQueuedShellCommands() {
     authorizationHelper.checkAdminAuthorization(user);
     return taskManager.getAllQueuedTaskShellCommandRequests();
+  }
+
+  @POST
+  @Path("/task/{taskId}/metadata")
+  @ApiOperation(value="Post metadata about a task that will be persisted along with it and displayed in the UI")
+  @ApiResponses({
+    @ApiResponse(code=400, message="Invalid metadata object or doesn't match allowed types"),
+    @ApiResponse(code=404, message="Task doesn't exist"),
+    @ApiResponse(code=409, message="Metadata with this type/timestamp already existed")
+  })
+  @Consumes({ MediaType.APPLICATION_JSON })
+  public void postTaskMetadata(@PathParam("taskId") String taskId, final SingularityTaskMetadataRequest taskMetadataRequest) {
+    SingularityTaskId taskIdObj = getTaskIdFromStr(taskId);
+
+    authorizationHelper.checkForAuthorizationByTaskId(taskId, user, SingularityAuthorizationScope.WRITE);
+    validator.checkActionEnabled(SingularityAction.ADD_METADATA);
+
+    WebExceptions.checkBadRequest(taskMetadataRequest.getTitle().length() < taskMetadataConfiguration.getMaxMetadataTitleLength(),
+      "Task metadata title too long, must be less than %s bytes", taskMetadataConfiguration.getMaxMetadataTitleLength());
+
+    int messageLength = taskMetadataRequest.getMessage().isPresent() ? taskMetadataRequest.getMessage().get().length() : 0;
+    WebExceptions.checkBadRequest(!taskMetadataRequest.getMessage().isPresent() || messageLength < taskMetadataConfiguration.getMaxMetadataMessageLength(),
+      "Task metadata message too long, must be less than %s bytes", taskMetadataConfiguration.getMaxMetadataMessageLength());
+
+    if (taskMetadataConfiguration.getAllowedMetadataTypes().isPresent()) {
+      WebExceptions.checkBadRequest(taskMetadataConfiguration.getAllowedMetadataTypes().get().contains(taskMetadataRequest.getType()), "%s is not one of the allowed metadata types %s",
+          taskMetadataRequest.getType(), taskMetadataConfiguration.getAllowedMetadataTypes().get());
+    }
+
+    WebExceptions.checkNotFound(taskManager.taskExistsInZk(taskIdObj), "Task {} not found in ZooKeeper (can not save metadata to tasks which have been persisted", taskIdObj);
+
+    final SingularityTaskMetadata taskMetadata = new SingularityTaskMetadata(taskIdObj, System.currentTimeMillis(), taskMetadataRequest.getType(), taskMetadataRequest.getTitle(),
+        taskMetadataRequest.getMessage(), JavaUtils.getUserEmail(user), taskMetadataRequest.getLevel());
+
+    SingularityCreateResult result = taskManager.saveTaskMetadata(taskMetadata);
+
+    WebExceptions.checkConflict(result == SingularityCreateResult.CREATED, "Task metadata conficted with existing metadata for %s at %s", taskMetadata.getType(), taskMetadata.getTimestamp());
   }
 
   @POST
@@ -289,6 +398,7 @@ public class TaskResource {
     SingularityTaskId taskIdObj = getTaskIdFromStr(taskId);
 
     authorizationHelper.checkForAuthorizationByTaskId(taskId, user, SingularityAuthorizationScope.WRITE);
+    validator.checkActionEnabled(SingularityAction.RUN_SHELL_COMMAND);
 
     if (!taskManager.isActiveTask(taskId)) {
       throw WebExceptions.badRequest("%s is not an active task, can't run %s on it", taskId, shellCommand.getName());

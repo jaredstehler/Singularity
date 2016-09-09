@@ -22,18 +22,15 @@ a.disabled:hover
 .headline-link
     color $base-text
     display inline-block
-    
+
 .link-spacer
     opacity 0.2
     padding 0px 5px
-    
+
 .subtle
     opacity 0.5
 
 // Overrides
-
-.vex-loading-spinner
-    top 45% !important
 
 .messenger-message
     background #fff !important
@@ -57,12 +54,6 @@ a.disabled:hover
 table th
     text-align left
 
-#page, .navbar .container-fluid
-    max-width 1500px
-
-#page
-    padding 0 20px 50px 20px
-
 .page-header small
     margin-left 1em
 
@@ -76,6 +67,7 @@ code
 
 .healthcheck-link
     font-weight bolder
+    margin 0 0.5em
 
 .healthcheck-number
     font-weight bolder
@@ -94,18 +86,29 @@ code
 .messenger-message p:last-child
     margin-bottom 0
 
+.tag-popover
+    word-break break-all
+
+.modal-header
+  h1, h2, h3, h4
+    margin: 0
+
 // Fix for FF
 @-moz-document url-prefix()
     fieldset
         display table-cell
 
-.auto-tail-checklist
+.wait-for-checklist
     margin-top 10px
-    .auto-tail-task-start
+    .wait-for-task-start
         font-weight bolder
 
     &.waiting-for-file
-        .auto-tail-task-start
+        .wait-for-task-start
             font-weight normal
-        .auto-tail-file-exists
+        .wait-for-file-exists
             font-weight bolder
+
+.help
+    color #999
+    font-size 0.9em

@@ -4,6 +4,7 @@ import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -12,7 +13,6 @@ import java.util.Random;
 import org.apache.mesos.Protos.MasterInfo;
 import org.apache.mesos.Protos.Offer;
 import org.apache.mesos.Protos.Resource;
-import org.apache.mesos.Protos.TaskInfo;
 import org.apache.mesos.Protos.TaskState;
 import org.apache.mesos.Protos.Value;
 import org.apache.mesos.Protos.Value.Range;
@@ -31,6 +31,7 @@ public final class MesosUtils {
   public static final String CPUS = "cpus";
   public static final String MEMORY = "mem";
   public static final String PORTS = "ports";
+  public static final String DISK = "disk";
 
   private MesosUtils() { }
 
@@ -59,10 +60,6 @@ public final class MesosUtils {
     return Ranges.getDefaultInstance();
   }
 
-  private static Ranges getRanges(TaskInfo taskInfo, String name) {
-    return getRanges(taskInfo.getResourcesList(), name);
-  }
-
   private static int getNumRanges(List<Resource> resources, String name) {
     int totalRanges = 0;
 
@@ -81,8 +78,14 @@ public final class MesosUtils {
     return newScalar(MEMORY, memory);
   }
 
+  public static Resource getDiskResource(double disk) { return newScalar(DISK, disk); }
+
   public static long[] getPorts(Resource portsResource, int numPorts) {
     long[] ports = new long[numPorts];
+    if (numPorts == 0) {
+      return ports;
+    }
+
     int idx = 0;
 
     for (Range r : portsResource.getRanges().getRangeList()) {
@@ -100,14 +103,13 @@ public final class MesosUtils {
 
   public static Resource getPortRangeResource(long begin, long end) { return newRange(PORTS, begin, end); }
 
-  public static List<Long> getAllPorts(TaskInfo taskInfo) {
+  public static List<Long> getAllPorts(List<Resource> resources) {
+    Ranges ranges = getRanges(resources, PORTS);
+
     final List<Long> ports = Lists.newArrayList();
-
-    final Ranges ranges = getRanges(taskInfo, PORTS);
-
     if (ranges != null) {
       for (Range range : ranges.getRangeList()) {
-        for (long port = range.getBegin(); port < range.getEnd(); port++) {
+        for (long port = range.getBegin(); port <= range.getEnd(); port++) {
           ports.add(port);
         }
       }
@@ -117,10 +119,11 @@ public final class MesosUtils {
   }
 
   public static Resource getPortsResource(int numPorts, Offer offer) {
-    return getPortsResource(numPorts, offer.getResourcesList());
+    return getPortsResource(numPorts, offer.getResourcesList(), Collections.<Long>emptyList());
   }
 
-  public static Resource getPortsResource(int numPorts, List<Resource> resources) {
+  public static Resource getPortsResource(int numPorts, List<Resource> resources, List<Long> otherRequestedPorts) {
+    List<Long> requestedPorts = new ArrayList<>(otherRequestedPorts);
     Ranges ranges = getRanges(resources, PORTS);
 
     Preconditions.checkState(ranges.getRangeCount() > 0, "Ports %s should have existed in resources %s", PORTS, resources);
@@ -134,25 +137,43 @@ public final class MesosUtils {
     Random random = new Random();
     Collections.shuffle(offerRangeList, random);
 
-    for (Range range : offerRangeList) {
-      long rangeStartSelection = Math.max(range.getBegin(), range.getEnd() - (numPorts - portsSoFar + 1));
+    if (numPorts > 0) {
+      for (Range range : offerRangeList) {
+        long rangeStartSelection = Math.max(range.getBegin(), range.getEnd() - (numPorts - portsSoFar + 1));
 
-      if (rangeStartSelection != range.getBegin()) {
-        int rangeDelta = (int) (rangeStartSelection - range.getBegin()) + 1;
-        rangeStartSelection = random.nextInt(rangeDelta) + range.getBegin();
-      }
+        if (rangeStartSelection != range.getBegin()) {
+          int rangeDelta = (int) (rangeStartSelection - range.getBegin()) + 1;
+          rangeStartSelection = random.nextInt(rangeDelta) + range.getBegin();
+        }
 
-      long rangeEndSelection = Math.min(range.getEnd(), rangeStartSelection + (numPorts - portsSoFar - 1));
+        long rangeEndSelection = Math.min(range.getEnd(), rangeStartSelection + (numPorts - portsSoFar - 1));
 
-      rangesBldr.addRange(Range.newBuilder()
+        rangesBldr.addRange(Range.newBuilder()
           .setBegin(rangeStartSelection)
           .setEnd(rangeEndSelection));
 
-      portsSoFar += (rangeEndSelection - rangeStartSelection) + 1;
+        portsSoFar += (rangeEndSelection - rangeStartSelection) + 1;
 
-      if (portsSoFar == numPorts) {
-        break;
+        List<Long> toRemove = new ArrayList<>();
+        for (long port : requestedPorts) {
+          if (rangeStartSelection >= port && rangeEndSelection <= port) {
+            toRemove.add(port);
+            portsSoFar--;
+          }
+        }
+        requestedPorts.removeAll(toRemove);
+
+        if (portsSoFar == numPorts) {
+          break;
+        }
       }
+    }
+
+    for (long port : requestedPorts) {
+      rangesBldr.addRange(Range.newBuilder()
+          .setBegin(port)
+          .setEnd(port)
+          .build());
     }
 
     return Resource.newBuilder()
@@ -178,6 +199,8 @@ public final class MesosUtils {
     return getMemory(offer.getResourcesList());
   }
 
+  public static double getDisk(Offer offer) { return getDisk(offer.getResourcesList()); }
+
   public static double getNumCpus(List<Resource> resources) {
     return getScalar(resources, CPUS);
   }
@@ -185,6 +208,8 @@ public final class MesosUtils {
   public static double getMemory(List<Resource> resources) {
     return getScalar(resources, MEMORY);
   }
+
+  public static double getDisk(List<Resource> resources) { return getScalar(resources, DISK); }
 
   public static int getNumPorts(List<Resource> resources) {
     return getNumRanges(resources, PORTS);
@@ -194,7 +219,7 @@ public final class MesosUtils {
     return getNumPorts(offer.getResourcesList());
   }
 
-  public static boolean doesOfferMatchResources(Resources resources, List<Resource> offerResources) {
+  public static boolean doesOfferMatchResources(Resources resources, List<Resource> offerResources, List<Long> otherRequestedPorts) {
     double numCpus = getNumCpus(offerResources);
 
     if (numCpus < resources.getCpus()) {
@@ -207,9 +232,19 @@ public final class MesosUtils {
       return false;
     }
 
+    double disk = getDisk(offerResources);
+
+    if (disk < resources.getDiskMb()) {
+      return false;
+    }
+
     int numPorts = getNumPorts(offerResources);
 
     if (numPorts < resources.getNumPorts()) {
+      return false;
+    }
+
+    if (!getAllPorts(offerResources).containsAll(otherRequestedPorts)) {
       return false;
     }
 
@@ -312,7 +347,7 @@ public final class MesosUtils {
   }
 
   public static Resources buildResourcesFromMesosResourceList(List<Resource> resources) {
-    return new Resources(getNumCpus(resources), getMemory(resources), getNumPorts(resources));
+    return new Resources(getNumCpus(resources), getMemory(resources), getNumPorts(resources), getDisk(resources));
   }
 
   public static Path getTaskDirectoryPath(String taskId) {

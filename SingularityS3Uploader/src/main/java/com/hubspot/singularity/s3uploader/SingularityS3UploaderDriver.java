@@ -29,7 +29,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Optional;
-import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
@@ -276,6 +275,8 @@ public class SingularityS3UploaderDriver extends WatchServiceHelper implements S
 
         LOG.debug("Deleting expired uploader {}", expiredUploader.getMetadataPath());
         Files.delete(expiredUploader.getMetadataPath());
+      } catch (NoSuchFileException nfe) {
+        LOG.warn("File {} was alrady deleted");
       } catch (IOException e) {
         LOG.warn("Couldn't delete {}", expiredUploader.getMetadataPath(), e);
         exceptionNotifier.notify(e, ImmutableMap.of("metadataPath", expiredUploader.getMetadataPath().toString()));

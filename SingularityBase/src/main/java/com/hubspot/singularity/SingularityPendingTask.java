@@ -9,14 +9,17 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
-import com.hubspot.mesos.JavaUtils;
+import com.hubspot.mesos.Resources;
 
 public class SingularityPendingTask {
 
   private final SingularityPendingTaskId pendingTaskId;
-  private final List<String> cmdLineArgsList;
+  private final Optional<List<String>> cmdLineArgsList;
   private final Optional<String> user;
   private final Optional<String> runId;
+  private final Optional<Boolean> skipHealthchecks;
+  private final Optional<String> message;
+  private final Optional<Resources> resources;
 
   public static Predicate<SingularityPendingTask> matchingRequest(final String requestId) {
     return new Predicate<SingularityPendingTask>() {
@@ -41,12 +44,16 @@ public class SingularityPendingTask {
   }
 
   @JsonCreator
-  public SingularityPendingTask(@JsonProperty("pendingTaskId") SingularityPendingTaskId pendingTaskId, @JsonProperty("cmdLineArgsList") List<String> cmdLineArgsList,
-      @JsonProperty("user") Optional<String> user, @JsonProperty("runId") Optional<String> runId) {
+  public SingularityPendingTask(@JsonProperty("pendingTaskId") SingularityPendingTaskId pendingTaskId, @JsonProperty("cmdLineArgsList") Optional<List<String>> cmdLineArgsList,
+      @JsonProperty("user") Optional<String> user, @JsonProperty("runId") Optional<String> runId, @JsonProperty("skipHealthchecks") Optional<Boolean> skipHealthchecks,
+      @JsonProperty("message") Optional<String> message, @JsonProperty("resources") Optional<Resources> resources) {
     this.pendingTaskId = pendingTaskId;
     this.user = user;
-    this.cmdLineArgsList = JavaUtils.nonNullImmutable(cmdLineArgsList);
+    this.message = message;
+    this.cmdLineArgsList = cmdLineArgsList;
     this.runId = runId;
+    this.skipHealthchecks = skipHealthchecks;
+    this.resources = resources;
   }
 
   @Override
@@ -77,7 +84,7 @@ public class SingularityPendingTask {
     return pendingTaskId;
   }
 
-  public List<String> getCmdLineArgsList() {
+  public Optional<List<String>> getCmdLineArgsList() {
     return cmdLineArgsList;
   }
 
@@ -85,9 +92,22 @@ public class SingularityPendingTask {
     return runId;
   }
 
+  public Optional<Boolean> getSkipHealthchecks() {
+    return skipHealthchecks;
+  }
+
+  public Optional<String> getMessage() {
+    return message;
+  }
+
+  public Optional<Resources> getResources() {
+    return resources;
+  }
+
   @Override
   public String toString() {
-    return "SingularityPendingTask [pendingTaskId=" + pendingTaskId + ", cmdLineArgsList=" + cmdLineArgsList + ", user=" + user + ", runId=" + runId + "]";
+    return "SingularityPendingTask [pendingTaskId=" + pendingTaskId + ", cmdLineArgsList=" + cmdLineArgsList + ", user=" + user + ", runId=" + runId + ", skipHealthchecks=" + skipHealthchecks
+        + ", message=" + message + ", resources=" + resources + "]";
   }
 
 }

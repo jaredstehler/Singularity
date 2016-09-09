@@ -5,11 +5,14 @@ import static com.hubspot.singularity.WebExceptions.checkNotFound;
 import com.google.common.base.Optional;
 import com.hubspot.singularity.MachineState;
 import com.hubspot.singularity.SingularityDeleteResult;
+import com.hubspot.singularity.SingularityAction;
 import com.hubspot.singularity.SingularityMachineAbstraction;
 import com.hubspot.singularity.SingularityUser;
+import com.hubspot.singularity.api.SingularityMachineChangeRequest;
 import com.hubspot.singularity.auth.SingularityAuthorizationHelper;
 import com.hubspot.singularity.data.AbstractMachineManager;
 import com.hubspot.singularity.data.AbstractMachineManager.StateChangeResult;
+import com.hubspot.singularity.data.SingularityValidator;
 import com.sun.jersey.api.ConflictException;
 import com.sun.jersey.api.NotFoundException;
 
@@ -19,11 +22,13 @@ public abstract class AbstractMachineResource<T extends SingularityMachineAbstra
   protected final Optional<SingularityUser> user;
 
   protected final SingularityAuthorizationHelper authorizationHelper;
+  private final SingularityValidator validator;
 
-  public AbstractMachineResource(AbstractMachineManager<T> manager, SingularityAuthorizationHelper authorizationHelper, Optional<SingularityUser> user) {
+  public AbstractMachineResource(AbstractMachineManager<T> manager, SingularityAuthorizationHelper authorizationHelper, Optional<SingularityUser> user, SingularityValidator validator) {
     this.manager = manager;
     this.authorizationHelper = authorizationHelper;
     this.user = user;
+    this.validator = validator;
   }
 
   protected void remove(String objectId) {
@@ -33,8 +38,14 @@ public abstract class AbstractMachineResource<T extends SingularityMachineAbstra
 
   protected abstract String getObjectTypeString();
 
-  private void changeState(String objectId, MachineState newState, Optional<String> user) {
-    StateChangeResult result = manager.changeState(objectId, newState, user);
+  private void changeState(String objectId, MachineState newState, Optional<SingularityMachineChangeRequest> changeRequest, Optional<String> user) {
+    Optional<String> message = Optional.absent();
+
+    if (changeRequest.isPresent()) {
+      message = changeRequest.get().getMessage();
+    }
+
+    StateChangeResult result = manager.changeState(objectId, newState, message, user);
 
     switch (result) {
       case FAILURE_NOT_FOUND:
@@ -48,19 +59,22 @@ public abstract class AbstractMachineResource<T extends SingularityMachineAbstra
 
   }
 
-  protected void decommission(String objectId, Optional<String> queryUser) {
+  protected void decommission(String objectId, Optional<SingularityMachineChangeRequest> decomissionRequest, Optional<String> queryUser, SingularityAction action) {
     authorizationHelper.checkAdminAuthorization(user);
-    changeState(objectId, MachineState.STARTING_DECOMMISSION, queryUser);
+    validator.checkActionEnabled(action);
+    changeState(objectId, MachineState.STARTING_DECOMMISSION, decomissionRequest, queryUser);
   }
 
-  protected void freeze(String objectId, Optional<String> queryUser) {
+  protected void freeze(String objectId, Optional<SingularityMachineChangeRequest> freezeRequest, Optional<String> queryUser, SingularityAction action) {
     authorizationHelper.checkAdminAuthorization(user);
-    changeState(objectId, MachineState.FROZEN, queryUser);
+    validator.checkActionEnabled(action);
+    changeState(objectId, MachineState.FROZEN, freezeRequest, queryUser);
   }
 
-  protected void activate(String objectId, Optional<String> queryUser) {
+  protected void activate(String objectId, Optional<SingularityMachineChangeRequest> activateRequest, Optional<String> queryUser, SingularityAction action) {
     authorizationHelper.checkAdminAuthorization(user);
-    changeState(objectId, MachineState.ACTIVE, queryUser);
+    validator.checkActionEnabled(action);
+    changeState(objectId, MachineState.ACTIVE, activateRequest, queryUser);
   }
 
 }

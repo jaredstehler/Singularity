@@ -11,9 +11,11 @@ import com.hubspot.singularity.runner.base.configuration.Configuration;
 
 @Configuration(filename = "/etc/singularity.oomkiller.yaml", consolidatedField = "oomkiller")
 public class SingularityOOMKillerConfiguration extends BaseRunnerConfiguration {
+  @Min(1)
   @JsonProperty
   private double requestKillThresholdRatio = 1.0;
 
+  @Min(1)
   @JsonProperty
   private double killProcessDirectlyThresholdRatio = 1.2;
 
@@ -76,11 +78,11 @@ public class SingularityOOMKillerConfiguration extends BaseRunnerConfiguration {
   @Override
   public String toString() {
     return "SingularityOOMKillerConfiguration[" +
-            "requestKillThresholdRatio=" + requestKillThresholdRatio +
-            ", killProcessDirectlyThresholdRatio=" + killProcessDirectlyThresholdRatio +
-            ", checkForOOMEveryMillis=" + checkForOOMEveryMillis +
-            ", slaveHostname='" + slaveHostname + '\'' +
-            ", cgroupProcsPathFormat='" + cgroupProcsPathFormat + '\'' +
-            ']';
+        "requestKillThresholdRatio=" + requestKillThresholdRatio +
+        ", killProcessDirectlyThresholdRatio=" + killProcessDirectlyThresholdRatio +
+        ", checkForOOMEveryMillis=" + checkForOOMEveryMillis +
+        ", slaveHostname='" + slaveHostname + '\'' +
+        ", cgroupProcsPathFormat='" + cgroupProcsPathFormat + '\'' +
+        ']';
   }
 }

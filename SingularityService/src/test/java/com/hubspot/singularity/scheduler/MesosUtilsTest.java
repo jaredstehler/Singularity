@@ -36,9 +36,9 @@ public class MesosUtilsTest {
     final SingularityTaskId taskId = new SingularityTaskId("r", "d", System.currentTimeMillis(), 1, "h", "r");
     final Optional<String> msg = Optional.absent();
 
-    SingularityTaskHistoryUpdate update1 = new SingularityTaskHistoryUpdate(taskId, 1L, ExtendedTaskState.TASK_LAUNCHED, msg);
-    SingularityTaskHistoryUpdate update2 = new SingularityTaskHistoryUpdate(taskId, 2L, ExtendedTaskState.TASK_RUNNING, msg);
-    SingularityTaskHistoryUpdate update3 = new SingularityTaskHistoryUpdate(taskId, 2L, ExtendedTaskState.TASK_FAILED, msg);
+    SingularityTaskHistoryUpdate update1 = new SingularityTaskHistoryUpdate(taskId, 1L, ExtendedTaskState.TASK_LAUNCHED, msg, Optional.<String>absent());
+    SingularityTaskHistoryUpdate update2 = new SingularityTaskHistoryUpdate(taskId, 2L, ExtendedTaskState.TASK_RUNNING, msg, Optional.<String>absent());
+    SingularityTaskHistoryUpdate update3 = new SingularityTaskHistoryUpdate(taskId, 2L, ExtendedTaskState.TASK_FAILED, msg, Optional.<String>absent());
 
     List<SingularityTaskHistoryUpdate> list = Arrays.asList(update2, update1, update3);
 
@@ -47,8 +47,6 @@ public class MesosUtilsTest {
     Assert.assertTrue(list.get(0).getTaskState() == ExtendedTaskState.TASK_LAUNCHED);
     Assert.assertTrue(list.get(1).getTaskState() == ExtendedTaskState.TASK_RUNNING);
     Assert.assertTrue(list.get(2).getTaskState() == ExtendedTaskState.TASK_FAILED);
-
-
   }
 
   @Test
@@ -80,7 +78,7 @@ public class MesosUtilsTest {
     }
 
     if (ranges.length > 0) {
-      resources.add(buildRanges(ranges));
+      resources.add(buildPortRanges(ranges));
     }
 
     return resources;
@@ -96,7 +94,33 @@ public class MesosUtilsTest {
 
   }
 
-  private Resource buildRanges(String... ranges) {
+  @Test
+  public void testLiteralHostPortSelection() {
+    String[] rangesNotOverlappingRequestedPorts = {"23:24", "25:25", "31:32", "50:51"};
+    int numPorts = 1;
+    List<Long> requestedPorts = Arrays.asList(50L, 51L);
+    Resource resource = MesosUtils.getPortsResource(numPorts, buildOffer(rangesNotOverlappingRequestedPorts).getResourcesList(), requestedPorts);
+    Assert.assertTrue(MesosUtils.getAllPorts(Collections.singletonList(resource)).containsAll(requestedPorts));
+    Assert.assertEquals(numPorts + requestedPorts.size(), MesosUtils.getNumPorts(Collections.singletonList(resource)));
+
+    String[] rangesOverlappingRequestPorts = {"23:28"};
+    numPorts = 4;
+    requestedPorts = Arrays.asList(25L, 27L);
+    resource = MesosUtils.getPortsResource(numPorts, buildOffer(rangesOverlappingRequestPorts).getResourcesList(), requestedPorts);
+    Assert.assertTrue(MesosUtils.getAllPorts(Collections.singletonList(resource)).containsAll(requestedPorts));
+    Assert.assertEquals(numPorts + requestedPorts.size(), MesosUtils.getNumPorts(Collections.singletonList(resource)));
+  }
+
+  @Test
+  public void testGetZeroPortsFromResource() {
+    String[] rangesOverlappingRequestPorts = {"23:28"};
+    int numPorts = 0;
+    List<Long> requestedPorts = Arrays.asList(25L, 27L);
+    Resource resource = MesosUtils.getPortsResource(numPorts, buildOffer(rangesOverlappingRequestPorts).getResourcesList(), requestedPorts);
+    Assert.assertEquals(0, MesosUtils.getPorts(resource, numPorts).length);
+  }
+
+  public static Resource buildPortRanges(String... ranges) {
     Resource.Builder resources = Resource.newBuilder()
         .setType(Type.RANGES)
         .setName(MesosUtils.PORTS);
@@ -124,7 +148,7 @@ public class MesosUtilsTest {
         .setHostname("hostname")
         .setSlaveId(SlaveID.newBuilder().setValue("slaveid").build());
 
-    offer.addResources(buildRanges(ranges));
+    offer.addResources(buildPortRanges(ranges));
 
     return offer.build();
   }

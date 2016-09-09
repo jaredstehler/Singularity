@@ -2,6 +2,7 @@ package com.hubspot.singularity.data.history;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Collections;
 import java.util.Date;
 
 import javax.inject.Inject;
@@ -16,6 +17,7 @@ import com.google.common.base.Optional;
 import com.hubspot.singularity.DeployState;
 import com.hubspot.singularity.ExtendedTaskState;
 import com.hubspot.singularity.SingularityDeploy;
+import com.hubspot.singularity.SingularityDeployFailure;
 import com.hubspot.singularity.SingularityDeployHistory;
 import com.hubspot.singularity.SingularityDeployMarker;
 import com.hubspot.singularity.SingularityDeployResult;
@@ -82,7 +84,7 @@ public class SingularityMappers {
     public SingularityRequestHistory map(int index, ResultSet r, StatementContext ctx) throws SQLException {
       try {
         return new SingularityRequestHistory(r.getTimestamp("createdAt").getTime(), Optional.fromNullable(r.getString("user")), RequestHistoryType.valueOf(r.getString("requestState")),
-            singularityRequestTranscoder.fromBytes(r.getBytes("request")));
+            singularityRequestTranscoder.fromBytes(r.getBytes("request")), Optional.fromNullable(r.getString("message")));
       } catch (SingularityTranscoderException e) {
         throw new ResultSetException("Could not deserialize database result", e, ctx);
       }
@@ -130,9 +132,10 @@ public class SingularityMappers {
     @Override
     public SingularityDeployHistory map(int index, ResultSet r, StatementContext ctx) throws SQLException {
       SingularityDeployMarker marker =
-          new SingularityDeployMarker(r.getString("requestId"), r.getString("deployId"), r.getTimestamp("createdAt").getTime(), Optional.fromNullable(r.getString("user")));
+          new SingularityDeployMarker(r.getString("requestId"), r.getString("deployId"), r.getTimestamp("createdAt").getTime(), Optional.fromNullable(r.getString("user")),
+              Optional.fromNullable(r.getString("message")));
       SingularityDeployResult deployState =
-          new SingularityDeployResult(DeployState.valueOf(r.getString("deployState")), Optional.<String>absent(), Optional.<SingularityLoadBalancerUpdate>absent(), r.getTimestamp("deployStateAt")
+          new SingularityDeployResult(DeployState.valueOf(r.getString("deployState")), Optional.<String>absent(), Optional.<SingularityLoadBalancerUpdate>absent(), Collections.<SingularityDeployFailure>emptyList(), r.getTimestamp("deployStateAt")
               .getTime());
 
       return new SingularityDeployHistory(Optional.of(deployState), marker, Optional.<SingularityDeploy>absent(), Optional.<SingularityDeployStatistics>absent());

@@ -1,6 +1,6 @@
 # Singularity REST API
 
-Version: 0.4.4-SNAPSHOT
+Version: 0.11.0-SNAPSHOT
 
 Endpoints:
 - [`/api/deploys`](#endpoint-/api/deploys) - Manages Singularity Deploys for existing requests
@@ -16,14 +16,26 @@ Endpoints:
 - [`/api/webhooks`](#endpoint-/api/webhooks) - Manages Singularity webhooks.
 
 Models:
+- [`Address`](#model-Address)
+- [`AddressOrBuilder`](#model-AddressOrBuilder)
+- [`Appc`](#model-Appc)
+- [`AppcOrBuilder`](#model-AppcOrBuilder)
 - [`ByteString`](#model-ByteString)
 - [`CommandInfo`](#model-CommandInfo)
 - [`CommandInfoOrBuilder`](#model-CommandInfoOrBuilder)
 - [`ContainerInfo`](#model-ContainerInfo)
 - [`ContainerInfoOrBuilder`](#model-ContainerInfoOrBuilder)
+- [`Credential`](#model-Credential)
+- [`CredentialOrBuilder`](#model-CredentialOrBuilder)
 - [`Descriptor`](#model-Descriptor)
+- [`DiscoveryInfo`](#model-DiscoveryInfo)
+- [`DiscoveryInfoOrBuilder`](#model-DiscoveryInfoOrBuilder)
+- [`Docker`](#model-Docker)
 - [`DockerInfo`](#model-DockerInfo)
 - [`DockerInfoOrBuilder`](#model-DockerInfoOrBuilder)
+- [`DockerOrBuilder`](#model-DockerOrBuilder)
+- [`DurationInfo`](#model-DurationInfo)
+- [`DurationInfoOrBuilder`](#model-DurationInfoOrBuilder)
 - [`EmbeddedArtifact`](#model-EmbeddedArtifact)
 - [`Environment`](#model-Environment)
 - [`EnvironmentOrBuilder`](#model-EnvironmentOrBuilder)
@@ -41,28 +53,47 @@ Models:
 - [`HTTPOrBuilder`](#model-HTTPOrBuilder)
 - [`HealthCheck`](#model-HealthCheck)
 - [`HealthCheckOrBuilder`](#model-HealthCheckOrBuilder)
+- [`Image`](#model-Image)
+- [`ImageOrBuilder`](#model-ImageOrBuilder)
+- [`Labels`](#model-Labels)
+- [`LabelsOrBuilder`](#model-LabelsOrBuilder)
 - [`LoadBalancerRequestId`](#model-LoadBalancerRequestId)
 - [`MesosFileChunkObject`](#model-MesosFileChunkObject)
+- [`MesosInfo`](#model-MesosInfo)
+- [`MesosInfoOrBuilder`](#model-MesosInfoOrBuilder)
 - [`MesosTaskStatisticsObject`](#model-MesosTaskStatisticsObject)
 - [`MessageOptions`](#model-MessageOptions)
 - [`Offer`](#model-Offer)
 - [`OfferID`](#model-OfferID)
 - [`OfferIDOrBuilder`](#model-OfferIDOrBuilder)
+- [`Ports`](#model-Ports)
+- [`PortsOrBuilder`](#model-PortsOrBuilder)
 - [`Resources`](#model-Resources)
 - [`S3Artifact`](#model-S3Artifact)
 - [`S3ArtifactSignature`](#model-S3ArtifactSignature)
+- [`SingularityBounceRequest`](#model-SingularityBounceRequest)
 - [`SingularityContainerInfo`](#model-SingularityContainerInfo)
+- [`SingularityDeleteRequestRequest`](#model-SingularityDeleteRequestRequest)
 - [`SingularityDeploy`](#model-SingularityDeploy)
+- [`SingularityDeployFailure`](#model-SingularityDeployFailure)
 - [`SingularityDeployHistory`](#model-SingularityDeployHistory)
 - [`SingularityDeployMarker`](#model-SingularityDeployMarker)
+- [`SingularityDeployProgress`](#model-SingularityDeployProgress)
 - [`SingularityDeployRequest`](#model-SingularityDeployRequest)
 - [`SingularityDeployResult`](#model-SingularityDeployResult)
 - [`SingularityDeployStatistics`](#model-SingularityDeployStatistics)
 - [`SingularityDeployUpdate`](#model-SingularityDeployUpdate)
 - [`SingularityDockerInfo`](#model-SingularityDockerInfo)
 - [`SingularityDockerPortMapping`](#model-SingularityDockerPortMapping)
+- [`SingularityExitCooldownRequest`](#model-SingularityExitCooldownRequest)
+- [`SingularityExpiringBounce`](#model-SingularityExpiringBounce)
+- [`SingularityExpiringPause`](#model-SingularityExpiringPause)
+- [`SingularityExpiringScale`](#model-SingularityExpiringScale)
+- [`SingularityExpiringSkipHealthchecks`](#model-SingularityExpiringSkipHealthchecks)
 - [`SingularityHostState`](#model-SingularityHostState)
+- [`SingularityKillTaskRequest`](#model-SingularityKillTaskRequest)
 - [`SingularityLoadBalancerUpdate`](#model-SingularityLoadBalancerUpdate)
+- [`SingularityMachineChangeRequest`](#model-SingularityMachineChangeRequest)
 - [`SingularityMachineStateHistoryUpdate`](#model-SingularityMachineStateHistoryUpdate)
 - [`SingularityPauseRequest`](#model-SingularityPauseRequest)
 - [`SingularityPendingDeploy`](#model-SingularityPendingDeploy)
@@ -74,10 +105,13 @@ Models:
 - [`SingularityRequestCleanup`](#model-SingularityRequestCleanup)
 - [`SingularityRequestDeployState`](#model-SingularityRequestDeployState)
 - [`SingularityRequestHistory`](#model-SingularityRequestHistory)
-- [`SingularityRequestInstances`](#model-SingularityRequestInstances)
 - [`SingularityRequestParent`](#model-SingularityRequestParent)
+- [`SingularityRunNowRequest`](#model-SingularityRunNowRequest)
 - [`SingularitySandbox`](#model-SingularitySandbox)
 - [`SingularitySandboxFile`](#model-SingularitySandboxFile)
+- [`SingularityScaleRequest`](#model-SingularityScaleRequest)
+- [`SingularityShellCommand`](#model-SingularityShellCommand)
+- [`SingularitySkipHealthchecksRequest`](#model-SingularitySkipHealthchecksRequest)
 - [`SingularitySlave`](#model-SingularitySlave)
 - [`SingularityState`](#model-SingularityState)
 - [`SingularityTask`](#model-SingularityTask)
@@ -87,14 +121,29 @@ Models:
 - [`SingularityTaskHistoryUpdate`](#model-SingularityTaskHistoryUpdate)
 - [`SingularityTaskId`](#model-SingularityTaskId)
 - [`SingularityTaskIdHistory`](#model-SingularityTaskIdHistory)
+- [`SingularityTaskMetadata`](#model-SingularityTaskMetadata)
+- [`SingularityTaskMetadataRequest`](#model-SingularityTaskMetadataRequest)
 - [`SingularityTaskRequest`](#model-SingularityTaskRequest)
+- [`SingularityTaskShellCommandHistory`](#model-SingularityTaskShellCommandHistory)
+- [`SingularityTaskShellCommandRequest`](#model-SingularityTaskShellCommandRequest)
+- [`SingularityTaskShellCommandRequestId`](#model-SingularityTaskShellCommandRequestId)
+- [`SingularityTaskShellCommandUpdate`](#model-SingularityTaskShellCommandUpdate)
+- [`SingularityUnpauseRequest`](#model-SingularityUnpauseRequest)
+- [`SingularityUpdatePendingDeployRequest`](#model-SingularityUpdatePendingDeployRequest)
 - [`SingularityVolume`](#model-SingularityVolume)
 - [`SingularityWebhook`](#model-SingularityWebhook)
+- [`SingularityWebhookSummary`](#model-SingularityWebhookSummary)
 - [`SlaveID`](#model-SlaveID)
 - [`SlaveIDOrBuilder`](#model-SlaveIDOrBuilder)
 - [`TaskID`](#model-TaskID)
 - [`TaskIDOrBuilder`](#model-TaskIDOrBuilder)
 - [`TaskInfo`](#model-TaskInfo)
+- [`TimeInfo`](#model-TimeInfo)
+- [`TimeInfoOrBuilder`](#model-TimeInfoOrBuilder)
+- [`URL`](#model-URL)
+- [`URLOrBuilder`](#model-URLOrBuilder)
+- [`Unavailability`](#model-Unavailability)
+- [`UnavailabilityOrBuilder`](#model-UnavailabilityOrBuilder)
 - [`UnknownFieldSet`](#model-UnknownFieldSet)
 
 - - -
@@ -104,6 +153,29 @@ Models:
 #### Overview
 Manages Singularity Deploys for existing requests
 
+#### **POST** `/api/deploys/update`
+
+Update the target active instance count for a pending deploy
+
+
+###### Parameters
+**body**
+
+| Parameter | Required | Description | Data Type |
+|-----------|----------|-------------|-----------|
+| body | true |  | [SingularityUpdatePendingDeployRequest](#model-linkType)</a> |
+
+###### Response
+[SingularityRequestParent](#model-SingularityRequestParent)
+
+
+###### Errors
+| Status Code | Reason      | Response Model |
+|-------------|-------------|----------------|
+| 400    | Deploy is not in the pending state pending or is not not present | - |
+
+
+- - -
 #### **GET** `/api/deploys/pending`
 
 Retrieve the list of current pending deploys
@@ -135,11 +207,6 @@ Cancel a pending deployment (best effort - the deploy may still succeed or fail)
 |-----------|----------|-------------|-----------|
 | requestId | true | The Singularity Request Id from which the deployment is removed. | string |
 | deployId | true | The Singularity Deploy Id that should be removed. | string |
-**query**
-
-| Parameter | Required | Description | Data Type |
-|-----------|----------|-------------|-----------|
-| user | false | The user which executes the delete request. | string |
 
 ###### Response
 [SingularityRequestParent](#model-SingularityRequestParent)
@@ -180,6 +247,37 @@ Start a new deployment for a Request
 #### Overview
 Manages historical data for tasks, requests, and deploys.
 
+#### **GET** `/api/history/tasks`
+
+Retrieve the history sorted by startedAt for all inactive tasks.
+
+
+###### Parameters
+**query**
+
+| Parameter | Required | Description | Data Type |
+|-----------|----------|-------------|-----------|
+| requestId | false | Optional Request ID to match | string |
+| deployId | false | Optional deploy ID to match | string |
+| host | false | Optional host to match | string |
+| lastTaskStatus | false | Optional last task status to match | string |
+| startedAfter | false | Optionally match only tasks started after | long |
+| startedBefore | false | Optionally match only tasks started before | long |
+| orderDirection | false | Sort direction | string |
+| count | false | Maximum number of items to return | int |
+| page | false | Which page of items to view | int |
+
+###### Response
+[List[SingularityTaskIdHistory]](#model-SingularityTaskIdHistory)
+
+
+###### Errors
+| Status Code | Reason      | Response Model |
+|-------------|-------------|----------------|
+| - | - | - |
+
+
+- - -
 #### **GET** `/api/history/task/{taskId}`
 
 Retrieve the history for a specific task.
@@ -253,7 +351,7 @@ Retrieve the history for all active tasks of a specific request.
 - - -
 #### **GET** `/api/history/request/{requestId}/tasks`
 
-Retrieve the history for all tasks of a specific request.
+Retrieve the history sorted by startedAt for all inactive tasks of a specific request.
 
 
 ###### Parameters
@@ -261,11 +359,17 @@ Retrieve the history for all tasks of a specific request.
 
 | Parameter | Required | Description | Data Type |
 |-----------|----------|-------------|-----------|
-| requestId | true | Request ID to look up | string |
+| requestId | true | Request ID to match | string |
 **query**
 
 | Parameter | Required | Description | Data Type |
 |-----------|----------|-------------|-----------|
+| deployId | false | Optional deploy ID to match | string |
+| host | false | Optional host to match | string |
+| lastTaskStatus | false | Optional last task status to match | string |
+| startedAfter | false | Optionally match only tasks started after | long |
+| startedBefore | false | Optionally match only tasks started before | long |
+| orderDirection | false | Sort direction | string |
 | count | false | Maximum number of items to return | int |
 | page | false | Which page of items to view | int |
 
@@ -280,9 +384,33 @@ Retrieve the history for all tasks of a specific request.
 
 
 - - -
+#### **GET** `/api/history/request/{requestId}/run/{runId}`
+
+Retrieve the history for a task by runId
+
+
+###### Parameters
+**path**
+
+| Parameter | Required | Description | Data Type |
+|-----------|----------|-------------|-----------|
+| requestId | true | Request ID to look up | string |
+| runId | true | runId to look up | string |
+
+###### Response
+[SingularityTaskIdHistory](#model-SingularityTaskIdHistory)
+
+
+###### Errors
+| Status Code | Reason      | Response Model |
+|-------------|-------------|----------------|
+| - | - | - |
+
+
+- - -
 #### **GET** `/api/history/request/{requestId}/requests`
 
-
+Get request history for a single request
 
 
 ###### Parameters
@@ -311,7 +439,7 @@ Retrieve the history for all tasks of a specific request.
 - - -
 #### **GET** `/api/history/request/{requestId}/deploys`
 
-
+Get deploy history for a single request
 
 
 ###### Parameters
@@ -431,6 +559,12 @@ Retrieve the list of logs stored in S3 for a specific task.
 | Parameter | Required | Description | Data Type |
 |-----------|----------|-------------|-----------|
 | taskId | true | The task ID to search for | string |
+**query**
+
+| Parameter | Required | Description | Data Type |
+|-----------|----------|-------------|-----------|
+| start | false | Start timestamp (millis, 13 digit) | long |
+| end | false | End timestamp (mills, 13 digit) | long |
 
 ###### Response
 [List[SingularityS3Log]](#model-SingularityS3Log)
@@ -455,6 +589,12 @@ Retrieve the list of logs stored in S3 for a specific deploy.
 |-----------|----------|-------------|-----------|
 | requestId | true | The request ID to search for | string |
 | deployId | true | The deploy ID to search for | string |
+**query**
+
+| Parameter | Required | Description | Data Type |
+|-----------|----------|-------------|-----------|
+| start | false | Start timestamp (millis, 13 digit) | long |
+| end | false | End timestamp (mills, 13 digit) | long |
 
 ###### Response
 [List[SingularityS3Log]](#model-SingularityS3Log)
@@ -478,6 +618,12 @@ Retrieve the list of logs stored in S3 for a specific request.
 | Parameter | Required | Description | Data Type |
 |-----------|----------|-------------|-----------|
 | requestId | true | The request ID to search for | string |
+**query**
+
+| Parameter | Required | Description | Data Type |
+|-----------|----------|-------------|-----------|
+| start | false | Start timestamp (millis, 13 digit) | long |
+| end | false | End timestamp (mills, 13 digit) | long |
 
 ###### Response
 [List[SingularityS3Log]](#model-SingularityS3Log)
@@ -505,11 +651,11 @@ Freeze a specific rack
 | Parameter | Required | Description | Data Type |
 |-----------|----------|-------------|-----------|
 | rackId | true | Rack ID | string |
-**query**
+**body**
 
 | Parameter | Required | Description | Data Type |
 |-----------|----------|-------------|-----------|
-| user | false | User requesting the freeze | string |
+| body | false |  | [SingularityMachineChangeRequest](#model-linkType)</a> |
 
 ###### Response
 
@@ -533,11 +679,11 @@ Begin decommissioning a specific active rack
 | Parameter | Required | Description | Data Type |
 |-----------|----------|-------------|-----------|
 | rackId | true | Active rack ID | string |
-**query**
+**body**
 
 | Parameter | Required | Description | Data Type |
 |-----------|----------|-------------|-----------|
-| user | false | User requesting the decommisioning | string |
+| body | false |  | [SingularityMachineChangeRequest](#model-linkType)</a> |
 
 ###### Response
 
@@ -561,11 +707,11 @@ Activate a decomissioning rack, canceling decomission without erasing history
 | Parameter | Required | Description | Data Type |
 |-----------|----------|-------------|-----------|
 | rackId | true | Active rackId | string |
-**query**
+**body**
 
 | Parameter | Required | Description | Data Type |
 |-----------|----------|-------------|-----------|
-| user | false | User requesting the activate | string |
+| body | false |  | [SingularityMachineChangeRequest](#model-linkType)</a> |
 
 ###### Response
 
@@ -612,11 +758,6 @@ Remove a known rack, erasing history. This operation will cancel decomissioning 
 | Parameter | Required | Description | Data Type |
 |-----------|----------|-------------|-----------|
 | rackId | true | Rack ID | string |
-**query**
-
-| Parameter | Required | Description | Data Type |
-|-----------|----------|-------------|-----------|
-| user | false |  | string |
 
 ###### Response
 
@@ -667,11 +808,11 @@ Unpause a Singularity Request, scheduling new tasks immediately
 | Parameter | Required | Description | Data Type |
 |-----------|----------|-------------|-----------|
 | requestId | true | The request ID to unpause | string |
-**query**
+**body**
 
 | Parameter | Required | Description | Data Type |
 |-----------|----------|-------------|-----------|
-| user | false | Username of the person requesting the unpause | string |
+| body | false |  | [SingularityUnpauseRequest](#model-linkType)</a> |
 
 ###### Response
 [SingularityRequestParent](#model-SingularityRequestParent)
@@ -681,6 +822,183 @@ Unpause a Singularity Request, scheduling new tasks immediately
 | Status Code | Reason      | Response Model |
 |-------------|-------------|----------------|
 | 409    | Request is not paused | - |
+
+
+- - -
+#### **DELETE** `/api/requests/request/{requestId}/skipHealthchecks`
+
+Delete/cancel the expiring skipHealthchecks. This makes the skipHealthchecks request permanent.
+
+
+###### Parameters
+**path**
+
+| Parameter | Required | Description | Data Type |
+|-----------|----------|-------------|-----------|
+| requestId | true | The Request ID | string |
+
+###### Response
+[SingularityRequestParent](#model-SingularityRequestParent)
+
+
+###### Errors
+| Status Code | Reason      | Response Model |
+|-------------|-------------|----------------|
+| 404    | No Request or expiring skipHealthchecks request for that ID | - |
+
+
+- - -
+#### **PUT** `/api/requests/request/{requestId}/skipHealthchecks`
+
+Update the skipHealthchecks field for the request, possibly temporarily
+
+
+###### Parameters
+**path**
+
+| Parameter | Required | Description | Data Type |
+|-----------|----------|-------------|-----------|
+| requestId | true | The Request ID to scale | string |
+**body**
+
+| Parameter | Required | Description | Data Type |
+|-----------|----------|-------------|-----------|
+| body | false | SkipHealtchecks options | [SingularitySkipHealthchecksRequest](#model-linkType)</a> |
+
+###### Response
+[SingularityRequestParent](#model-SingularityRequestParent)
+
+
+###### Errors
+| Status Code | Reason      | Response Model |
+|-------------|-------------|----------------|
+| 404    | No Request with that ID | - |
+
+
+- - -
+#### **PUT** `/api/requests/request/{requestId}/skip-healthchecks`
+
+Update the skipHealthchecks field for the request, possibly temporarily
+
+
+###### Parameters
+**path**
+
+| Parameter | Required | Description | Data Type |
+|-----------|----------|-------------|-----------|
+| requestId | true | The Request ID to scale | string |
+**body**
+
+| Parameter | Required | Description | Data Type |
+|-----------|----------|-------------|-----------|
+| body | false | SkipHealtchecks options | [SingularitySkipHealthchecksRequest](#model-linkType)</a> |
+
+###### Response
+[SingularityRequestParent](#model-SingularityRequestParent)
+
+
+###### Errors
+| Status Code | Reason      | Response Model |
+|-------------|-------------|----------------|
+| 404    | No Request with that ID | - |
+
+
+- - -
+#### **DELETE** `/api/requests/request/{requestId}/skip-healthchecks`
+
+Delete/cancel the expiring skipHealthchecks. This makes the skipHealthchecks request permanent.
+
+
+###### Parameters
+**path**
+
+| Parameter | Required | Description | Data Type |
+|-----------|----------|-------------|-----------|
+| requestId | true | The Request ID | string |
+
+###### Response
+[SingularityRequestParent](#model-SingularityRequestParent)
+
+
+###### Errors
+| Status Code | Reason      | Response Model |
+|-------------|-------------|----------------|
+| 404    | No Request or expiring skipHealthchecks request for that ID | - |
+
+
+- - -
+#### **PUT** `/api/requests/request/{requestId}/scale`
+
+Scale the number of instances up or down for a specific Request
+
+
+###### Parameters
+**path**
+
+| Parameter | Required | Description | Data Type |
+|-----------|----------|-------------|-----------|
+| requestId | true | The Request ID to scale | string |
+**body**
+
+| Parameter | Required | Description | Data Type |
+|-----------|----------|-------------|-----------|
+| body | false | Object to hold number of instances to request | [SingularityScaleRequest](#model-linkType)</a> |
+
+###### Response
+[SingularityRequestParent](#model-SingularityRequestParent)
+
+
+###### Errors
+| Status Code | Reason      | Response Model |
+|-------------|-------------|----------------|
+| 404    | No Request with that ID | - |
+
+
+- - -
+#### **DELETE** `/api/requests/request/{requestId}/scale`
+
+Delete/cancel the expiring scale. This makes the scale request permanent.
+
+
+###### Parameters
+**path**
+
+| Parameter | Required | Description | Data Type |
+|-----------|----------|-------------|-----------|
+| requestId | true | The Request ID | string |
+
+###### Response
+[SingularityRequestParent](#model-SingularityRequestParent)
+
+
+###### Errors
+| Status Code | Reason      | Response Model |
+|-------------|-------------|----------------|
+| 404    | No Request or expiring scale request for that ID | - |
+
+
+- - -
+#### **GET** `/api/requests/request/{requestId}/run/{runId}`
+
+Retrieve an active task by runId
+
+
+###### Parameters
+**path**
+
+| Parameter | Required | Description | Data Type |
+|-----------|----------|-------------|-----------|
+| requestId | true |  | string |
+| runId | true |  | string |
+
+###### Response
+[SingularityTaskId](#model-SingularityTaskId)
+
+
+###### Errors
+| Status Code | Reason      | Response Model |
+|-------------|-------------|----------------|
+| - | - | - |
 
 
 - - -
@@ -695,17 +1013,11 @@ Schedule a one-off or scheduled Singularity request for immediate execution.
 | Parameter | Required | Description | Data Type |
 |-----------|----------|-------------|-----------|
 | requestId | true | The request ID to run | string |
-**query**
-
-| Parameter | Required | Description | Data Type |
-|-----------|----------|-------------|-----------|
-| user | false | Username of the person requesting the execution | string |
-| runId | false | Run ID to associate with this task. If not specified, one will be generated | string |
 **body**
 
 | Parameter | Required | Description | Data Type |
 |-----------|----------|-------------|-----------|
-| body | false | Additional command line arguments to append to the task | List[string] |
+| body | false |  | [SingularityRunNowRequest](#model-linkType)</a> |
 
 ###### Response
 [SingularityRequestParent](#model-SingularityRequestParent)
@@ -729,11 +1041,6 @@ Pause a Singularity request, future tasks will not run until it is manually unpa
 | Parameter | Required | Description | Data Type |
 |-----------|----------|-------------|-----------|
 | requestId | true | The request ID to pause | string |
-**query**
-
-| Parameter | Required | Description | Data Type |
-|-----------|----------|-------------|-----------|
-| user | false | Username of the person requesting the pause | string |
 **body**
 
 | Parameter | Required | Description | Data Type |
@@ -751,9 +1058,9 @@ Pause a Singularity request, future tasks will not run until it is manually unpa
 
 
 - - -
-#### **PUT** `/api/requests/request/{requestId}/instances`
+#### **DELETE** `/api/requests/request/{requestId}/pause`
 
-Scale the number of instances up or down for a specific Request
+Delete/cancel the expiring pause. This makes the pause request permanent.
 
 
 ###### Parameters
@@ -761,27 +1068,44 @@ Scale the number of instances up or down for a specific Request
 
 | Parameter | Required | Description | Data Type |
 |-----------|----------|-------------|-----------|
-| requestId | true | The Request ID to scale | string |
-**query**
-
-| Parameter | Required | Description | Data Type |
-|-----------|----------|-------------|-----------|
-| user | false | Username of the person requesting the scale | string |
-**body**
-
-| Parameter | Required | Description | Data Type |
-|-----------|----------|-------------|-----------|
-| body | false | Object to hold number of instances to request | [SingularityRequestInstances](#model-linkType)</a> |
+| requestId | true | The Request ID | string |
 
 ###### Response
-[SingularityRequest](#model-SingularityRequest)
+[SingularityRequestParent](#model-SingularityRequestParent)
 
 
 ###### Errors
 | Status Code | Reason      | Response Model |
 |-------------|-------------|----------------|
-| 400    | Posted object did not match Request ID | - |
-| 404    | No Request with that ID | - |
+| 404    | No Request or expiring pause request for that ID | - |
+
+
+- - -
+#### **POST** `/api/requests/request/{requestId}/exit-cooldown`
+
+Immediately exits cooldown, scheduling new tasks immediately
+
+
+###### Parameters
+**path**
+
+| Parameter | Required | Description | Data Type |
+|-----------|----------|-------------|-----------|
+| requestId | true |  | string |
+**body**
+
+| Parameter | Required | Description | Data Type |
+|-----------|----------|-------------|-----------|
+| body | false |  | [SingularityExitCooldownRequest](#model-linkType)</a> |
+
+###### Response
+[SingularityRequestParent](#model-SingularityRequestParent)
+
+
+###### Errors
+| Status Code | Reason      | Response Model |
+|-------------|-------------|----------------|
+| 409    | Request is not in cooldown | - |
 
 
 - - -
@@ -796,11 +1120,11 @@ Bounce a specific Singularity request. A bounce launches replacement task(s), an
 | Parameter | Required | Description | Data Type |
 |-----------|----------|-------------|-----------|
 | requestId | true | The request ID to bounce | string |
-**query**
+**body**
 
 | Parameter | Required | Description | Data Type |
 |-----------|----------|-------------|-----------|
-| user | false | Username of the person requesting the bounce | string |
+| body | false | Bounce request options | [SingularityBounceRequest](#model-linkType)</a> |
 
 ###### Response
 [SingularityRequestParent](#model-SingularityRequestParent)
@@ -810,6 +1134,29 @@ Bounce a specific Singularity request. A bounce launches replacement task(s), an
 | Status Code | Reason      | Response Model |
 |-------------|-------------|----------------|
 | - | - | - |
+
+
+- - -
+#### **DELETE** `/api/requests/request/{requestId}/bounce`
+
+Delete/cancel the expiring bounce. This makes the bounce request permanent.
+
+
+###### Parameters
+**path**
+
+| Parameter | Required | Description | Data Type |
+|-----------|----------|-------------|-----------|
+| requestId | true | The Request ID | string |
+
+###### Response
+[SingularityRequestParent](#model-SingularityRequestParent)
+
+
+###### Errors
+| Status Code | Reason      | Response Model |
+|-------------|-------------|----------------|
+| 404    | No Request or expiring bounce request for that ID | - |
 
 
 - - -
@@ -847,11 +1194,11 @@ Delete a specific Request by ID and return the deleted Request
 | Parameter | Required | Description | Data Type |
 |-----------|----------|-------------|-----------|
 | requestId | true | The request ID to delete. | string |
-**query**
+**body**
 
 | Parameter | Required | Description | Data Type |
 |-----------|----------|-------------|-----------|
-| user | false | Username of the person requesting the delete | string |
+| body | false | Delete options | [SingularityDeleteRequestRequest](#model-linkType)</a> |
 
 ###### Response
 [SingularityRequest](#model-SingularityRequest)
@@ -912,6 +1259,25 @@ Retrieve the list of paused requests
 
 ###### Response
 [List[SingularityRequestParent]](#model-SingularityRequestParent)
+
+
+###### Errors
+| Status Code | Reason      | Response Model |
+|-------------|-------------|----------------|
+| - | - | - |
+
+
+- - -
+#### **GET** `/api/requests/lbcleanup`
+
+Retrieve the list of tasks being cleaned from load balancers.
+
+
+###### Parameters
+- No parameters
+
+###### Response
+[UNKNOWN[string]](#model-UNKNOWN[string])
 
 
 ###### Errors
@@ -1003,11 +1369,6 @@ Create or update a Singularity Request
 
 
 ###### Parameters
-**query**
-
-| Parameter | Required | Description | Data Type |
-|-----------|----------|-------------|-----------|
-| user | false | Username of the person requesting to create or update | string |
 **body**
 
 | Parameter | Required | Description | Data Type |
@@ -1104,11 +1465,11 @@ Freeze tasks on a specific slave
 | Parameter | Required | Description | Data Type |
 |-----------|----------|-------------|-----------|
 | slaveId | true | Slave ID | string |
-**query**
+**body**
 
 | Parameter | Required | Description | Data Type |
 |-----------|----------|-------------|-----------|
-| user | false | User requesting the freeze | string |
+| body | false |  | [SingularityMachineChangeRequest](#model-linkType)</a> |
 
 ###### Response
 
@@ -1132,11 +1493,11 @@ Begin decommissioning a specific active slave
 | Parameter | Required | Description | Data Type |
 |-----------|----------|-------------|-----------|
 | slaveId | true | Active slaveId | string |
-**query**
+**body**
 
 | Parameter | Required | Description | Data Type |
 |-----------|----------|-------------|-----------|
-| user | false | User requesting the decommisioning | string |
+| body | false |  | [SingularityMachineChangeRequest](#model-linkType)</a> |
 
 ###### Response
 
@@ -1160,11 +1521,11 @@ Activate a decomissioning slave, canceling decomission without erasing history
 | Parameter | Required | Description | Data Type |
 |-----------|----------|-------------|-----------|
 | slaveId | true | Active slaveId | string |
-**query**
+**body**
 
 | Parameter | Required | Description | Data Type |
 |-----------|----------|-------------|-----------|
-| user | false | User requesting the activate | string |
+| body | false |  | [SingularityMachineChangeRequest](#model-linkType)</a> |
 
 ###### Response
 
@@ -1211,11 +1572,6 @@ Remove a known slave, erasing history. This operation will cancel decomissioning
 | Parameter | Required | Description | Data Type |
 |-----------|----------|-------------|-----------|
 | slaveId | true | Active SlaveId | string |
-**query**
-
-| Parameter | Required | Description | Data Type |
-|-----------|----------|-------------|-----------|
-| user | false |  | string |
 
 ###### Response
 
@@ -1352,6 +1708,65 @@ Retrieve statistics about a specific active task.
 
 
 - - -
+#### **POST** `/api/tasks/task/{taskId}/metadata`
+
+Post metadata about a task that will be persisted along with it and displayed in the UI
+
+
+###### Parameters
+**path**
+
+| Parameter | Required | Description | Data Type |
+|-----------|----------|-------------|-----------|
+| taskId | true |  | string |
+**body**
+
+| Parameter | Required | Description | Data Type |
+|-----------|----------|-------------|-----------|
+| body | false |  | [SingularityTaskMetadataRequest](#model-linkType)</a> |
+
+###### Response
+
+
+
+###### Errors
+| Status Code | Reason      | Response Model |
+|-------------|-------------|----------------|
+| 400    | Invalid metadata object or doesn&#39;t match allowed types | - |
+| 404    | Task doesn&#39;t exist | - |
+| 409    | Metadata with this type/timestamp already existed | - |
+
+
+- - -
+#### **POST** `/api/tasks/task/{taskId}/command`
+
+Run a configured shell command against the given task
+
+
+###### Parameters
+**path**
+
+| Parameter | Required | Description | Data Type |
+|-----------|----------|-------------|-----------|
+| taskId | true |  | string |
+**body**
+
+| Parameter | Required | Description | Data Type |
+|-----------|----------|-------------|-----------|
+| body | false |  | [SingularityShellCommand](#model-linkType)</a> |
+
+###### Response
+[SingularityTaskShellCommandRequest](#model-SingularityTaskShellCommandRequest)
+
+
+###### Errors
+| Status Code | Reason      | Response Model |
+|-------------|-------------|----------------|
+| 400    | Given shell command option doesn&#39;t exist | - |
+| 403    | Given shell command doesn&#39;t exist | - |
+
+
+- - -
 #### **GET** `/api/tasks/task/{taskId}/cleanup`
 
 Get the cleanup object for the task, if it exists
@@ -1409,12 +1824,11 @@ Attempt to kill task, optionally overriding an existing cleanup request (that ma
 | Parameter | Required | Description | Data Type |
 |-----------|----------|-------------|-----------|
 | taskId | true |  | string |
-**query**
+**body**
 
 | Parameter | Required | Description | Data Type |
 |-----------|----------|-------------|-----------|
-| user | false |  | string |
-| override | false | Pass true to save over any existing cleanup requests | boolean |
+| body | false |  | [SingularityKillTaskRequest](#model-linkType)</a> |
 
 ###### Response
 [SingularityTaskCleanup](#model-SingularityTaskCleanup)
@@ -1521,6 +1935,25 @@ Retrieve the list of tasks being cleaned from load balancers.
 
 ###### Response
 [UNKNOWN[SingularityTaskId]](#model-UNKNOWN[SingularityTaskId])
+
+
+###### Errors
+| Status Code | Reason      | Response Model |
+|-------------|-------------|----------------|
+| - | - | - |
+
+
+- - -
+#### **GET** `/api/tasks/killed`
+
+Retrieve the list of killed tasks.
+
+
+###### Parameters
+- No parameters
+
+###### Response
+[UNKNOWN[SingularityKilledTaskIdRecord]](#model-UNKNOWN[SingularityKilledTaskIdRecord])
 
 
 ###### Errors
@@ -1695,6 +2128,29 @@ Make this instance of Singularity believe it&#39;s elected leader.
 
 
 - - -
+#### **POST** `/api/test/exception`
+
+Trigger an exception.
+
+
+###### Parameters
+**query**
+
+| Parameter | Required | Description | Data Type |
+|-----------|----------|-------------|-----------|
+| message | false |  | string |
+
+###### Response
+
+
+
+###### Errors
+| Status Code | Reason      | Response Model |
+|-------------|-------------|----------------|
+| - | - | - |
+
+
+- - -
 #### **POST** `/api/test/abort`
 
 Abort the Mesos scheduler driver.
@@ -1764,6 +2220,48 @@ Retrieve a list of queued task updates for a specific webhook.
 
 
 - - -
+#### **GET** `/api/webhooks/task`
+
+Retrieve a list of queued task updates for a specific webhook.
+
+
+###### Parameters
+**query**
+
+| Parameter | Required | Description | Data Type |
+|-----------|----------|-------------|-----------|
+| webhookId | false |  | string |
+
+###### Response
+[List[SingularityTaskHistoryUpdate]](#model-SingularityTaskHistoryUpdate)
+
+
+###### Errors
+| Status Code | Reason      | Response Model |
+|-------------|-------------|----------------|
+| - | - | - |
+
+
+- - -
+#### **GET** `/api/webhooks/summary`
+
+Retrieve a summary of each active webhook
+
+
+###### Parameters
+- No parameters
+
+###### Response
+[List[SingularityWebhookSummary]](#model-SingularityWebhookSummary)
+
+
+###### Errors
+| Status Code | Reason      | Response Model |
+|-------------|-------------|----------------|
+| - | - | - |
+
+
+- - -
 #### **GET** `/api/webhooks/request/{webhookId}`
 
 Retrieve a list of queued request updates for a specific webhook.
@@ -1787,6 +2285,29 @@ Retrieve a list of queued request updates for a specific webhook.
 
 
 - - -
+#### **GET** `/api/webhooks/request`
+
+Retrieve a list of queued request updates for a specific webhook.
+
+
+###### Parameters
+**query**
+
+| Parameter | Required | Description | Data Type |
+|-----------|----------|-------------|-----------|
+| webhookId | false |  | string |
+
+###### Response
+[List[SingularityRequestHistory]](#model-SingularityRequestHistory)
+
+
+###### Errors
+| Status Code | Reason      | Response Model |
+|-------------|-------------|----------------|
+| - | - | - |
+
+
+- - -
 #### **GET** `/api/webhooks/deploy/{webhookId}`
 
 Retrieve a list of queued deploy updates for a specific webhook.
@@ -1798,6 +2319,29 @@ Retrieve a list of queued deploy updates for a specific webhook.
 | Parameter | Required | Description | Data Type |
 |-----------|----------|-------------|-----------|
 | webhookId | true |  | string |
+
+###### Response
+[List[SingularityDeployUpdate]](#model-SingularityDeployUpdate)
+
+
+###### Errors
+| Status Code | Reason      | Response Model |
+|-------------|-------------|----------------|
+| - | - | - |
+
+
+- - -
+#### **GET** `/api/webhooks/deploy`
+
+Retrieve a list of queued deploy updates for a specific webhook.
+
+
+###### Parameters
+**query**
+
+| Parameter | Required | Description | Data Type |
+|-----------|----------|-------------|-----------|
+| webhookId | false |  | string |
 
 ###### Response
 [List[SingularityDeployUpdate]](#model-SingularityDeployUpdate)
@@ -1852,8 +2396,93 @@ string
 
 
 - - -
+#### **DELETE** `/api/webhooks`
+
+Delete a specific webhook.
+
+
+###### Parameters
+**query**
+
+| Parameter | Required | Description | Data Type |
+|-----------|----------|-------------|-----------|
+| webhookId | false |  | string |
+
+###### Response
+string
+
+
+###### Errors
+| Status Code | Reason      | Response Model |
+|-------------|-------------|----------------|
+| - | - | - |
+
+
+- - -
 
 ## Data Types
+
+## <a name="model-Address"></a> Address
+
+| name | type | required | description |
+|------|------|----------|-------------|
+| defaultInstanceForType | [Address](#model-Address) | optional |  |
+| ip | string | optional |  |
+| parserForType | [com.google.protobuf.Parser&lt;org.apache.mesos.Protos$Address&gt;](#model-com.google.protobuf.Parser&lt;org.apache.mesos.Protos$Address&gt;) | optional |  |
+| hostname | string | optional |  |
+| ipBytes | [ByteString](#model-ByteString) | optional |  |
+| initialized | boolean | optional |  |
+| serializedSize | int | optional |  |
+| allFields | [Map[FieldDescriptor,Object]](#model-Map[FieldDescriptor,Object]) | optional |  |
+| hostnameBytes | [ByteString](#model-ByteString) | optional |  |
+| descriptorForType | [Descriptor](#model-Descriptor) | optional |  |
+| port | int | optional |  |
+| unknownFields | [UnknownFieldSet](#model-UnknownFieldSet) | optional |  |
+| initializationErrorString | string | optional |  |
+
+
+## <a name="model-AddressOrBuilder"></a> AddressOrBuilder
+
+| name | type | required | description |
+|------|------|----------|-------------|
+| ip | string | optional |  |
+| ipBytes | [ByteString](#model-ByteString) | optional |  |
+| hostname | string | optional |  |
+| hostnameBytes | [ByteString](#model-ByteString) | optional |  |
+| port | int | optional |  |
+
+
+## <a name="model-Appc"></a> Appc
+
+| name | type | required | description |
+|------|------|----------|-------------|
+| defaultInstanceForType | [Appc](#model-Appc) | optional |  |
+| idBytes | [ByteString](#model-ByteString) | optional |  |
+| parserForType | [com.google.protobuf.Parser&lt;org.apache.mesos.Protos$Image$Appc&gt;](#model-com.google.protobuf.Parser&lt;org.apache.mesos.Protos$Image$Appc&gt;) | optional |  |
+| labelsOrBuilder | [LabelsOrBuilder](#model-LabelsOrBuilder) | optional |  |
+| labels | [Labels](#model-Labels) | optional |  |
+| initialized | boolean | optional |  |
+| name | string | optional |  |
+| nameBytes | [ByteString](#model-ByteString) | optional |  |
+| serializedSize | int | optional |  |
+| allFields | [Map[FieldDescriptor,Object]](#model-Map[FieldDescriptor,Object]) | optional |  |
+| descriptorForType | [Descriptor](#model-Descriptor) | optional |  |
+| unknownFields | [UnknownFieldSet](#model-UnknownFieldSet) | optional |  |
+| initializationErrorString | string | optional |  |
+| id | string | optional |  |
+
+
+## <a name="model-AppcOrBuilder"></a> AppcOrBuilder
+
+| name | type | required | description |
+|------|------|----------|-------------|
+| idBytes | [ByteString](#model-ByteString) | optional |  |
+| labelsOrBuilder | [LabelsOrBuilder](#model-LabelsOrBuilder) | optional |  |
+| labels | [Labels](#model-Labels) | optional |  |
+| nameBytes | [ByteString](#model-ByteString) | optional |  |
+| name | string | optional |  |
+| id | string | optional |  |
+
 
 ## <a name="model-ByteString"></a> ByteString
 
@@ -1873,8 +2502,6 @@ string
 | argumentsCount | int | optional |  |
 | urisCount | int | optional |  |
 | argumentsList | Array[string] | optional |  |
-| containerOrBuilder | [ContainerInfoOrBuilder](#model-ContainerInfoOrBuilder) | optional |  |
-| container | [ContainerInfo](#model-ContainerInfo) | optional |  |
 | user | string | optional |  |
 | value | string | optional |  |
 | initialized | boolean | optional |  |
@@ -1896,18 +2523,16 @@ string
 | name | type | required | description |
 |------|------|----------|-------------|
 | urisOrBuilderList | [List[? extends org.apache.mesos.Protos$CommandInfo$URIOrBuilder]](#model-List[? extends org.apache.mesos.Protos$CommandInfo$URIOrBuilder]) | optional |  |
-| urisCount | int | optional |  |
 | argumentsCount | int | optional |  |
+| urisCount | int | optional |  |
 | argumentsList | Array[string] | optional |  |
-| containerOrBuilder | [ContainerInfoOrBuilder](#model-ContainerInfoOrBuilder) | optional |  |
-| container | [ContainerInfo](#model-ContainerInfo) | optional |  |
 | user | string | optional |  |
 | value | string | optional |  |
-| environment | [Environment](#model-Environment) | optional |  |
 | userBytes | [ByteString](#model-ByteString) | optional |  |
+| environment | [Environment](#model-Environment) | optional |  |
 | shell | boolean | optional |  |
-| urisList | [List[URI]](#model-List[URI]) | optional |  |
 | environmentOrBuilder | [EnvironmentOrBuilder](#model-EnvironmentOrBuilder) | optional |  |
+| urisList | [List[URI]](#model-List[URI]) | optional |  |
 | valueBytes | [ByteString](#model-ByteString) | optional |  |
 
 
@@ -1916,13 +2541,18 @@ string
 | name | type | required | description |
 |------|------|----------|-------------|
 | defaultInstanceForType | [ContainerInfo](#model-ContainerInfo) | optional |  |
+| networkInfosList | [List[NetworkInfo]](#model-List[NetworkInfo]) | optional |  |
+| networkInfosOrBuilderList | [List[? extends org.apache.mesos.Protos$NetworkInfoOrBuilder]](#model-List[? extends org.apache.mesos.Protos$NetworkInfoOrBuilder]) | optional |  |
 | type | [Type](#model-Type) | optional |  Allowable values: DOCKER, MESOS |
 | parserForType | [com.google.protobuf.Parser&lt;org.apache.mesos.Protos$ContainerInfo&gt;](#model-com.google.protobuf.Parser&lt;org.apache.mesos.Protos$ContainerInfo&gt;) | optional |  |
+| mesos | [MesosInfo](#model-MesosInfo) | optional |  |
 | hostname | string | optional |  |
+| mesosOrBuilder | [MesosInfoOrBuilder](#model-MesosInfoOrBuilder) | optional |  |
 | dockerOrBuilder | [DockerInfoOrBuilder](#model-DockerInfoOrBuilder) | optional |  |
 | initialized | boolean | optional |  |
 | volumesCount | int | optional |  |
 | serializedSize | int | optional |  |
+| networkInfosCount | int | optional |  |
 | volumesList | [List[Volume]](#model-List[Volume]) | optional |  |
 | allFields | [Map[FieldDescriptor,Object]](#model-Map[FieldDescriptor,Object]) | optional |  |
 | descriptorForType | [Descriptor](#model-Descriptor) | optional |  |
@@ -1937,14 +2567,47 @@ string
 
 | name | type | required | description |
 |------|------|----------|-------------|
+| networkInfosList | [List[NetworkInfo]](#model-List[NetworkInfo]) | optional |  |
+| networkInfosOrBuilderList | [List[? extends org.apache.mesos.Protos$NetworkInfoOrBuilder]](#model-List[? extends org.apache.mesos.Protos$NetworkInfoOrBuilder]) | optional |  |
 | type | [Type](#model-Type) | optional |  Allowable values: DOCKER, MESOS |
+| mesos | [MesosInfo](#model-MesosInfo) | optional |  |
 | hostname | string | optional |  |
+| mesosOrBuilder | [MesosInfoOrBuilder](#model-MesosInfoOrBuilder) | optional |  |
 | dockerOrBuilder | [DockerInfoOrBuilder](#model-DockerInfoOrBuilder) | optional |  |
 | volumesCount | int | optional |  |
+| networkInfosCount | int | optional |  |
 | volumesList | [List[Volume]](#model-List[Volume]) | optional |  |
 | hostnameBytes | [ByteString](#model-ByteString) | optional |  |
-| docker | [DockerInfo](#model-DockerInfo) | optional |  |
 | volumesOrBuilderList | [List[? extends org.apache.mesos.Protos$VolumeOrBuilder]](#model-List[? extends org.apache.mesos.Protos$VolumeOrBuilder]) | optional |  |
+| docker | [DockerInfo](#model-DockerInfo) | optional |  |
+
+
+## <a name="model-Credential"></a> Credential
+
+| name | type | required | description |
+|------|------|----------|-------------|
+| defaultInstanceForType | [Credential](#model-Credential) | optional |  |
+| secret | string | optional |  |
+| parserForType | [com.google.protobuf.Parser&lt;org.apache.mesos.Protos$Credential&gt;](#model-com.google.protobuf.Parser&lt;org.apache.mesos.Protos$Credential&gt;) | optional |  |
+| initialized | boolean | optional |  |
+| principal | string | optional |  |
+| serializedSize | int | optional |  |
+| allFields | [Map[FieldDescriptor,Object]](#model-Map[FieldDescriptor,Object]) | optional |  |
+| descriptorForType | [Descriptor](#model-Descriptor) | optional |  |
+| secretBytes | [ByteString](#model-ByteString) | optional |  |
+| principalBytes | [ByteString](#model-ByteString) | optional |  |
+| initializationErrorString | string | optional |  |
+| unknownFields | [UnknownFieldSet](#model-UnknownFieldSet) | optional |  |
+
+
+## <a name="model-CredentialOrBuilder"></a> CredentialOrBuilder
+
+| name | type | required | description |
+|------|------|----------|-------------|
+| secret | string | optional |  |
+| principal | string | optional |  |
+| secretBytes | [ByteString](#model-ByteString) | optional |  |
+| principalBytes | [ByteString](#model-ByteString) | optional |  |
 
 
 ## <a name="model-Descriptor"></a> Descriptor
@@ -1963,15 +2626,82 @@ string
 | nestedTypes | [List[Descriptor]](#model-List[Descriptor]) | optional |  |
 
 
+## <a name="model-DiscoveryInfo"></a> DiscoveryInfo
+
+| name | type | required | description |
+|------|------|----------|-------------|
+| defaultInstanceForType | [DiscoveryInfo](#model-DiscoveryInfo) | optional |  |
+| location | string | optional |  |
+| parserForType | [com.google.protobuf.Parser&lt;org.apache.mesos.Protos$DiscoveryInfo&gt;](#model-com.google.protobuf.Parser&lt;org.apache.mesos.Protos$DiscoveryInfo&gt;) | optional |  |
+| labelsOrBuilder | [LabelsOrBuilder](#model-LabelsOrBuilder) | optional |  |
+| versionBytes | [ByteString](#model-ByteString) | optional |  |
+| labels | [Labels](#model-Labels) | optional |  |
+| locationBytes | [ByteString](#model-ByteString) | optional |  |
+| initialized | boolean | optional |  |
+| name | string | optional |  |
+| environment | string | optional |  |
+| nameBytes | [ByteString](#model-ByteString) | optional |  |
+| ports | [Ports](#model-Ports) | optional |  |
+| environmentBytes | [ByteString](#model-ByteString) | optional |  |
+| visibility | [Visibility](#model-Visibility) | optional |  Allowable values: FRAMEWORK, CLUSTER, EXTERNAL |
+| serializedSize | int | optional |  |
+| portsOrBuilder | [PortsOrBuilder](#model-PortsOrBuilder) | optional |  |
+| allFields | [Map[FieldDescriptor,Object]](#model-Map[FieldDescriptor,Object]) | optional |  |
+| descriptorForType | [Descriptor](#model-Descriptor) | optional |  |
+| unknownFields | [UnknownFieldSet](#model-UnknownFieldSet) | optional |  |
+| version | string | optional |  |
+| initializationErrorString | string | optional |  |
+
+
+## <a name="model-DiscoveryInfoOrBuilder"></a> DiscoveryInfoOrBuilder
+
+| name | type | required | description |
+|------|------|----------|-------------|
+| location | string | optional |  |
+| labelsOrBuilder | [LabelsOrBuilder](#model-LabelsOrBuilder) | optional |  |
+| versionBytes | [ByteString](#model-ByteString) | optional |  |
+| labels | [Labels](#model-Labels) | optional |  |
+| locationBytes | [ByteString](#model-ByteString) | optional |  |
+| name | string | optional |  |
+| environment | string | optional |  |
+| nameBytes | [ByteString](#model-ByteString) | optional |  |
+| ports | [Ports](#model-Ports) | optional |  |
+| visibility | [Visibility](#model-Visibility) | optional |  Allowable values: FRAMEWORK, CLUSTER, EXTERNAL |
+| environmentBytes | [ByteString](#model-ByteString) | optional |  |
+| portsOrBuilder | [PortsOrBuilder](#model-PortsOrBuilder) | optional |  |
+| version | string | optional |  |
+
+
+## <a name="model-Docker"></a> Docker
+
+| name | type | required | description |
+|------|------|----------|-------------|
+| defaultInstanceForType | [Docker](#model-Docker) | optional |  |
+| parserForType | [com.google.protobuf.Parser&lt;org.apache.mesos.Protos$Image$Docker&gt;](#model-com.google.protobuf.Parser&lt;org.apache.mesos.Protos$Image$Docker&gt;) | optional |  |
+| credentialOrBuilder | [CredentialOrBuilder](#model-CredentialOrBuilder) | optional |  |
+| credential | [Credential](#model-Credential) | optional |  |
+| initialized | boolean | optional |  |
+| nameBytes | [ByteString](#model-ByteString) | optional |  |
+| name | string | optional |  |
+| serializedSize | int | optional |  |
+| allFields | [Map[FieldDescriptor,Object]](#model-Map[FieldDescriptor,Object]) | optional |  |
+| descriptorForType | [Descriptor](#model-Descriptor) | optional |  |
+| initializationErrorString | string | optional |  |
+| unknownFields | [UnknownFieldSet](#model-UnknownFieldSet) | optional |  |
+
+
 ## <a name="model-DockerInfo"></a> DockerInfo
 
 | name | type | required | description |
 |------|------|----------|-------------|
-| portMappingsOrBuilderList | [List[? extends org.apache.mesos.Protos$ContainerInfo$DockerInfo$PortMappingOrBuilder]](#model-List[? extends org.apache.mesos.Protos$ContainerInfo$DockerInfo$PortMappingOrBuilder]) | optional |  |
 | defaultInstanceForType | [DockerInfo](#model-DockerInfo) | optional |  |
+| portMappingsOrBuilderList | [List[? extends org.apache.mesos.Protos$ContainerInfo$DockerInfo$PortMappingOrBuilder]](#model-List[? extends org.apache.mesos.Protos$ContainerInfo$DockerInfo$PortMappingOrBuilder]) | optional |  |
 | parametersList | [List[Parameter]](#model-List[Parameter]) | optional |  |
 | parametersOrBuilderList | [List[? extends org.apache.mesos.Protos$ParameterOrBuilder]](#model-List[? extends org.apache.mesos.Protos$ParameterOrBuilder]) | optional |  |
 | parserForType | [com.google.protobuf.Parser&lt;org.apache.mesos.Protos$ContainerInfo$DockerInfo&gt;](#model-com.google.protobuf.Parser&lt;org.apache.mesos.Protos$ContainerInfo$DockerInfo&gt;) | optional |  |
+| volumeDriver | string | optional |  |
+| volumeDriverBytes | [ByteString](#model-ByteString) | optional |  |
+| forcePullImage | boolean | optional |  |
 | imageBytes | [ByteString](#model-ByteString) | optional |  |
 | initialized | boolean | optional |  |
 | privileged | boolean | optional |  |
@@ -1992,21 +2722,57 @@ string
 | name | type | required | description |
 |------|------|----------|-------------|
 | portMappingsOrBuilderList | [List[? extends org.apache.mesos.Protos$ContainerInfo$DockerInfo$PortMappingOrBuilder]](#model-List[? extends org.apache.mesos.Protos$ContainerInfo$DockerInfo$PortMappingOrBuilder]) | optional |  |
-| parametersOrBuilderList | [List[? extends org.apache.mesos.Protos$ParameterOrBuilder]](#model-List[? extends org.apache.mesos.Protos$ParameterOrBuilder]) | optional |  |
 | parametersList | [List[Parameter]](#model-List[Parameter]) | optional |  |
+| parametersOrBuilderList | [List[? extends org.apache.mesos.Protos$ParameterOrBuilder]](#model-List[? extends org.apache.mesos.Protos$ParameterOrBuilder]) | optional |  |
+| volumeDriver | string | optional |  |
+| volumeDriverBytes | [ByteString](#model-ByteString) | optional |  |
+| forcePullImage | boolean | optional |  |
 | imageBytes | [ByteString](#model-ByteString) | optional |  |
 | privileged | boolean | optional |  |
-| parametersCount | int | optional |  |
 | portMappingsCount | int | optional |  |
+| parametersCount | int | optional |  |
 | network | [Network](#model-Network) | optional |  Allowable values: HOST, BRIDGE, NONE |
 | portMappingsList | [List[PortMapping]](#model-List[PortMapping]) | optional |  |
 | image | string | optional |  |
+
+
+## <a name="model-DockerOrBuilder"></a> DockerOrBuilder
+
+| name | type | required | description |
+|------|------|----------|-------------|
+| credentialOrBuilder | [CredentialOrBuilder](#model-CredentialOrBuilder) | optional |  |
+| credential | [Credential](#model-Credential) | optional |  |
+| nameBytes | [ByteString](#model-ByteString) | optional |  |
+| name | string | optional |  |
+
+
+## <a name="model-DurationInfo"></a> DurationInfo
+
+| name | type | required | description |
+|------|------|----------|-------------|
+| defaultInstanceForType | [DurationInfo](#model-DurationInfo) | optional |  |
+| parserForType | [com.google.protobuf.Parser&lt;org.apache.mesos.Protos$DurationInfo&gt;](#model-com.google.protobuf.Parser&lt;org.apache.mesos.Protos$DurationInfo&gt;) | optional |  |
+| nanoseconds | long | optional |  |
+| initialized | boolean | optional |  |
+| serializedSize | int | optional |  |
+| allFields | [Map[FieldDescriptor,Object]](#model-Map[FieldDescriptor,Object]) | optional |  |
+| descriptorForType | [Descriptor](#model-Descriptor) | optional |  |
+| initializationErrorString | string | optional |  |
+| unknownFields | [UnknownFieldSet](#model-UnknownFieldSet) | optional |  |
+
+
+## <a name="model-DurationInfoOrBuilder"></a> DurationInfoOrBuilder
+
+| name | type | required | description |
+|------|------|----------|-------------|
+| nanoseconds | long | optional |  |
 
 
 ## <a name="model-EmbeddedArtifact"></a> EmbeddedArtifact
 
 | name | type | required | description |
 |------|------|----------|-------------|
+| targetFolderRelativeToTask | string | optional |  |
 | md5sum | string | optional |  |
 | filename | string | optional |  |
 | name | string | optional |  |
@@ -2023,8 +2789,8 @@ string
 | variablesCount | int | optional |  |
 | serializedSize | int | optional |  |
 | allFields | [Map[FieldDescriptor,Object]](#model-Map[FieldDescriptor,Object]) | optional |  |
-| variablesList | [List[Variable]](#model-List[Variable]) | optional |  |
 | variablesOrBuilderList | [List[? extends org.apache.mesos.Protos$Environment$VariableOrBuilder]](#model-List[? extends org.apache.mesos.Protos$Environment$VariableOrBuilder]) | optional |  |
+| variablesList | [List[Variable]](#model-List[Variable]) | optional |  |
 | descriptorForType | [Descriptor](#model-Descriptor) | optional |  |
 | initializationErrorString | string | optional |  |
 | unknownFields | [UnknownFieldSet](#model-UnknownFieldSet) | optional |  |
@@ -2035,8 +2801,8 @@ string
 | name | type | required | description |
 |------|------|----------|-------------|
 | variablesCount | int | optional |  |
-| variablesList | [List[Variable]](#model-List[Variable]) | optional |  |
 | variablesOrBuilderList | [List[? extends org.apache.mesos.Protos$Environment$VariableOrBuilder]](#model-List[? extends org.apache.mesos.Protos$Environment$VariableOrBuilder]) | optional |  |
+| variablesList | [List[Variable]](#model-List[Variable]) | optional |  |
 
 
 ## <a name="model-ExecutorData"></a> ExecutorData
@@ -2049,6 +2815,7 @@ string
 | s3Artifacts | [Array[S3Artifact]](#model-S3Artifact) | optional |  |
 | successfulExitCodes | Array[int] | optional |  |
 | runningSentinel | string | optional |  |
+| logrotateFrequency | [SingularityExecutorLogrotateFrequency](#model-SingularityExecutorLogrotateFrequency) | optional |  |
 | maxOpenFiles | int | optional |  |
 | externalArtifacts | [Array[ExternalArtifact]](#model-ExternalArtifact) | optional |  |
 | user | string | optional |  |
@@ -2097,8 +2864,8 @@ string
 | data | [ByteString](#model-ByteString) | optional |  |
 | source | string | optional |  |
 | containerOrBuilder | [ContainerInfoOrBuilder](#model-ContainerInfoOrBuilder) | optional |  |
-| container | [ContainerInfo](#model-ContainerInfo) | optional |  |
 | executorId | [ExecutorID](#model-ExecutorID) | optional |  |
+| container | [ContainerInfo](#model-ContainerInfo) | optional |  |
 | initialized | boolean | optional |  |
 | name | string | optional |  |
 | nameBytes | [ByteString](#model-ByteString) | optional |  |
@@ -2107,13 +2874,15 @@ string
 | command | [CommandInfo](#model-CommandInfo) | optional |  |
 | frameworkIdOrBuilder | [FrameworkIDOrBuilder](#model-FrameworkIDOrBuilder) | optional |  |
 | executorIdOrBuilder | [ExecutorIDOrBuilder](#model-ExecutorIDOrBuilder) | optional |  |
-| resourcesList | [List[Resource]](#model-List[Resource]) | optional |  |
 | serializedSize | int | optional |  |
+| resourcesList | [List[Resource]](#model-List[Resource]) | optional |  |
 | allFields | [Map[FieldDescriptor,Object]](#model-Map[FieldDescriptor,Object]) | optional |  |
+| discovery | [DiscoveryInfo](#model-DiscoveryInfo) | optional |  |
 | descriptorForType | [Descriptor](#model-Descriptor) | optional |  |
-| unknownFields | [UnknownFieldSet](#model-UnknownFieldSet) | optional |  |
 | resourcesCount | int | optional |  |
+| unknownFields | [UnknownFieldSet](#model-UnknownFieldSet) | optional |  |
 | initializationErrorString | string | optional |  |
+| discoveryOrBuilder | [DiscoveryInfoOrBuilder](#model-DiscoveryInfoOrBuilder) | optional |  |
 
 
 ## <a name="model-ExecutorInfoOrBuilder"></a> ExecutorInfoOrBuilder
@@ -2125,23 +2894,26 @@ string
 | data | [ByteString](#model-ByteString) | optional |  |
 | source | string | optional |  |
 | containerOrBuilder | [ContainerInfoOrBuilder](#model-ContainerInfoOrBuilder) | optional |  |
-| container | [ContainerInfo](#model-ContainerInfo) | optional |  |
 | executorId | [ExecutorID](#model-ExecutorID) | optional |  |
+| container | [ContainerInfo](#model-ContainerInfo) | optional |  |
 | name | string | optional |  |
 | nameBytes | [ByteString](#model-ByteString) | optional |  |
-| sourceBytes | [ByteString](#model-ByteString) | optional |  |
 | frameworkId | [FrameworkID](#model-FrameworkID) | optional |  |
+| sourceBytes | [ByteString](#model-ByteString) | optional |  |
 | command | [CommandInfo](#model-CommandInfo) | optional |  |
 | frameworkIdOrBuilder | [FrameworkIDOrBuilder](#model-FrameworkIDOrBuilder) | optional |  |
 | executorIdOrBuilder | [ExecutorIDOrBuilder](#model-ExecutorIDOrBuilder) | optional |  |
 | resourcesList | [List[Resource]](#model-List[Resource]) | optional |  |
+| discovery | [DiscoveryInfo](#model-DiscoveryInfo) | optional |  |
 | resourcesCount | int | optional |  |
+| discoveryOrBuilder | [DiscoveryInfoOrBuilder](#model-DiscoveryInfoOrBuilder) | optional |  |
 
 
 ## <a name="model-ExternalArtifact"></a> ExternalArtifact
 
 | name | type | required | description |
 |------|------|----------|-------------|
+| targetFolderRelativeToTask | string | optional |  |
 | md5sum | string | optional |  |
 | url | string | optional |  |
 | filename | string | optional |  |
@@ -2168,11 +2940,11 @@ string
 
 | name | type | required | description |
 |------|------|----------|-------------|
-| javaMultipleFiles | boolean | optional |  |
 | defaultInstanceForType | [FileOptions](#model-FileOptions) | optional |  |
+| javaMultipleFiles | boolean | optional |  |
 | optimizeFor | [OptimizeMode](#model-OptimizeMode) | optional |  Allowable values: SPEED, CODE_SIZE, LITE_RUNTIME |
-| javaPackageBytes | [ByteString](#model-ByteString) | optional |  |
 | parserForType | [com.google.protobuf.Parser&lt;com.google.protobuf.DescriptorProtos$FileOptions&gt;](#model-com.google.protobuf.Parser&lt;com.google.protobuf.DescriptorProtos$FileOptions&gt;) | optional |  |
+| javaPackageBytes | [ByteString](#model-ByteString) | optional |  |
 | goPackageBytes | [ByteString](#model-ByteString) | optional |  |
 | javaGenericServices | boolean | optional |  |
 | uninterpretedOptionCount | int | optional |  |
@@ -2183,12 +2955,12 @@ string
 | serializedSize | int | optional |  |
 | allFields | [Map[FieldDescriptor,Object]](#model-Map[FieldDescriptor,Object]) | optional |  |
 | descriptorForType | [Descriptor](#model-Descriptor) | optional |  |
-| javaPackage | string | optional |  |
-| uninterpretedOptionList | [List[UninterpretedOption]](#model-List[UninterpretedOption]) | optional |  |
 | goPackage | string | optional |  |
+| uninterpretedOptionList | [List[UninterpretedOption]](#model-List[UninterpretedOption]) | optional |  |
+| javaPackage | string | optional |  |
+| javaGenerateEqualsAndHash | boolean | optional |  |
 | unknownFields | [UnknownFieldSet](#model-UnknownFieldSet) | optional |  |
 | uninterpretedOptionOrBuilderList | [List[? extends com.google.protobuf.DescriptorProtos$UninterpretedOptionOrBuilder]](#model-List[? extends com.google.protobuf.DescriptorProtos$UninterpretedOptionOrBuilder]) | optional |  |
-| javaGenerateEqualsAndHash | boolean | optional |  |
 | initializationErrorString | string | optional |  |
 | ccGenericServices | boolean | optional |  |
 
@@ -2274,8 +3046,8 @@ string
 
 | name | type | required | description |
 |------|------|----------|-------------|
-| commandOrBuilder | [CommandInfoOrBuilder](#model-CommandInfoOrBuilder) | optional |  |
 | gracePeriodSeconds | double | optional |  |
+| commandOrBuilder | [CommandInfoOrBuilder](#model-CommandInfoOrBuilder) | optional |  |
 | httpOrBuilder | [HTTPOrBuilder](#model-HTTPOrBuilder) | optional |  |
 | consecutiveFailures | int | optional |  |
 | intervalSeconds | double | optional |  |
@@ -2285,11 +3057,67 @@ string
 | delaySeconds | double | optional |  |
 
 
+## <a name="model-Image"></a> Image
+
+| name | type | required | description |
+|------|------|----------|-------------|
+| defaultInstanceForType | [Image](#model-Image) | optional |  |
+| appcOrBuilder | [AppcOrBuilder](#model-AppcOrBuilder) | optional |  |
+| type | [Type](#model-Type) | optional |  Allowable values: APPC, DOCKER |
+| parserForType | [com.google.protobuf.Parser&lt;org.apache.mesos.Protos$Image&gt;](#model-com.google.protobuf.Parser&lt;org.apache.mesos.Protos$Image&gt;) | optional |  |
+| dockerOrBuilder | [DockerOrBuilder](#model-DockerOrBuilder) | optional |  |
+| initialized | boolean | optional |  |
+| appc | [Appc](#model-Appc) | optional |  |
+| serializedSize | int | optional |  |
+| allFields | [Map[FieldDescriptor,Object]](#model-Map[FieldDescriptor,Object]) | optional |  |
+| descriptorForType | [Descriptor](#model-Descriptor) | optional |  |
+| docker | [Docker](#model-Docker) | optional |  |
+| unknownFields | [UnknownFieldSet](#model-UnknownFieldSet) | optional |  |
+| initializationErrorString | string | optional |  |
+
+
+## <a name="model-ImageOrBuilder"></a> ImageOrBuilder
+
+| name | type | required | description |
+|------|------|----------|-------------|
+| appcOrBuilder | [AppcOrBuilder](#model-AppcOrBuilder) | optional |  |
+| type | [Type](#model-Type) | optional |  Allowable values: APPC, DOCKER |
+| dockerOrBuilder | [DockerOrBuilder](#model-DockerOrBuilder) | optional |  |
+| appc | [Appc](#model-Appc) | optional |  |
+| docker | [Docker](#model-Docker) | optional |  |
+
+
+## <a name="model-Labels"></a> Labels
+
+| name | type | required | description |
+|------|------|----------|-------------|
+| defaultInstanceForType | [Labels](#model-Labels) | optional |  |
+| labelsList | [List[Label]](#model-List[Label]) | optional |  |
+| labelsOrBuilderList | [List[? extends org.apache.mesos.Protos$LabelOrBuilder]](#model-List[? extends org.apache.mesos.Protos$LabelOrBuilder]) | optional |  |
+| parserForType | [com.google.protobuf.Parser&lt;org.apache.mesos.Protos$Labels&gt;](#model-com.google.protobuf.Parser&lt;org.apache.mesos.Protos$Labels&gt;) | optional |  |
+| initialized | boolean | optional |  |
+| labelsCount | int | optional |  |
+| serializedSize | int | optional |  |
+| allFields | [Map[FieldDescriptor,Object]](#model-Map[FieldDescriptor,Object]) | optional |  |
+| descriptorForType | [Descriptor](#model-Descriptor) | optional |  |
+| initializationErrorString | string | optional |  |
+| unknownFields | [UnknownFieldSet](#model-UnknownFieldSet) | optional |  |
+
+
+## <a name="model-LabelsOrBuilder"></a> LabelsOrBuilder
+
+| name | type | required | description |
+|------|------|----------|-------------|
+| labelsList | [List[Label]](#model-List[Label]) | optional |  |
+| labelsOrBuilderList | [List[? extends org.apache.mesos.Protos$LabelOrBuilder]](#model-List[? extends org.apache.mesos.Protos$LabelOrBuilder]) | optional |  |
+| labelsCount | int | optional |  |
+
+
 ## <a name="model-LoadBalancerRequestId"></a> LoadBalancerRequestId
 
 | name | type | required | description |
 |------|------|----------|-------------|
-| requestType | [LoadBalancerRequestType](#model-LoadBalancerRequestType) | optional |  Allowable values: ADD, REMOVE, DEPLOY |
+| requestType | [LoadBalancerRequestType](#model-LoadBalancerRequestType) | optional |  Allowable values: ADD, REMOVE, DEPLOY, DELETE |
 | attemptNumber | int | optional |  |
 | id | string | optional |  |
 
@@ -2298,8 +3126,33 @@ string
 
 | name | type | required | description |
 |------|------|----------|-------------|
+| nextOffset | long | optional |  |
 | data | string | optional |  |
 | offset | long | optional |  |
+
+
+## <a name="model-MesosInfo"></a> MesosInfo
+
+| name | type | required | description |
+|------|------|----------|-------------|
+| defaultInstanceForType | [MesosInfo](#model-MesosInfo) | optional |  |
+| parserForType | [com.google.protobuf.Parser&lt;org.apache.mesos.Protos$ContainerInfo$MesosInfo&gt;](#model-com.google.protobuf.Parser&lt;org.apache.mesos.Protos$ContainerInfo$MesosInfo&gt;) | optional |  |
+| initialized | boolean | optional |  |
+| serializedSize | int | optional |  |
+| allFields | [Map[FieldDescriptor,Object]](#model-Map[FieldDescriptor,Object]) | optional |  |
+| descriptorForType | [Descriptor](#model-Descriptor) | optional |  |
+| image | [Image](#model-Image) | optional |  |
+| initializationErrorString | string | optional |  |
+| imageOrBuilder | [ImageOrBuilder](#model-ImageOrBuilder) | optional |  |
+| unknownFields | [UnknownFieldSet](#model-UnknownFieldSet) | optional |  |
+
+
+## <a name="model-MesosInfoOrBuilder"></a> MesosInfoOrBuilder
+
+| name | type | required | description |
+|------|------|----------|-------------|
+| image | [Image](#model-Image) | optional |  |
+| imageOrBuilder | [ImageOrBuilder](#model-ImageOrBuilder) | optional |  |
 
 
 ## <a name="model-MesosTaskStatisticsObject"></a> MesosTaskStatisticsObject
@@ -2308,16 +3161,16 @@ string
 |------|------|----------|-------------|
 | memFileBytes | long | optional |  |
 | memLimitBytes | long | optional |  |
-| cpusThrottledTimeSecs | float | optional |  |
-| cpusSystemTimeSecs | float | optional |  |
+| cpusThrottledTimeSecs | double | optional |  |
+| cpusSystemTimeSecs | double | optional |  |
 | memRssBytes | long | optional |  |
 | memAnonBytes | long | optional |  |
 | memMappedFileBytes | long | optional |  |
 | cpusLimit | int | optional |  |
 | timestamp | double | optional |  |
-| cpusNrPeriods | int | optional |  |
-| cpusUserTimeSecs | float | optional |  |
-| cpusNrThrottled | int | optional |  |
+| cpusNrPeriods | long | optional |  |
+| cpusUserTimeSecs | double | optional |  |
+| cpusNrThrottled | long | optional |  |
 
 
 ## <a name="model-MessageOptions"></a> MessageOptions
@@ -2347,8 +3200,12 @@ string
 | executorIdsOrBuilderList | [List[? extends org.apache.mesos.Protos$ExecutorIDOrBuilder]](#model-List[? extends org.apache.mesos.Protos$ExecutorIDOrBuilder]) | optional |  |
 | parserForType | [com.google.protobuf.Parser&lt;org.apache.mesos.Protos$Offer&gt;](#model-com.google.protobuf.Parser&lt;org.apache.mesos.Protos$Offer&gt;) | optional |  |
 | slaveIdOrBuilder | [SlaveIDOrBuilder](#model-SlaveIDOrBuilder) | optional |  |
+| urlOrBuilder | [URLOrBuilder](#model-URLOrBuilder) | optional |  |
 | executorIdsCount | int | optional |  |
 | resourcesOrBuilderList | [List[? extends org.apache.mesos.Protos$ResourceOrBuilder]](#model-List[? extends org.apache.mesos.Protos$ResourceOrBuilder]) | optional |  |
+| unavailabilityOrBuilder | [UnavailabilityOrBuilder](#model-UnavailabilityOrBuilder) | optional |  |
+| url | [URL](#model-URL) | optional |  |
+| unavailability | [Unavailability](#model-Unavailability) | optional |  |
 | executorIdsList | [List[ExecutorID]](#model-List[ExecutorID]) | optional |  |
 | hostname | string | optional |  |
 | attributesCount | int | optional |  |
@@ -2361,13 +3218,13 @@ string
 | resourcesList | [List[Resource]](#model-List[Resource]) | optional |  |
 | slaveId | [SlaveID](#model-SlaveID) | optional |  |
 | allFields | [Map[FieldDescriptor,Object]](#model-Map[FieldDescriptor,Object]) | optional |  |
-| hostnameBytes | [ByteString](#model-ByteString) | optional |  |
 | descriptorForType | [Descriptor](#model-Descriptor) | optional |  |
+| hostnameBytes | [ByteString](#model-ByteString) | optional |  |
 | attributesOrBuilderList | [List[? extends org.apache.mesos.Protos$AttributeOrBuilder]](#model-List[? extends org.apache.mesos.Protos$AttributeOrBuilder]) | optional |  |
 | resourcesCount | int | optional |  |
 | unknownFields | [UnknownFieldSet](#model-UnknownFieldSet) | optional |  |
-| id | [OfferID](#model-OfferID) | optional |  |
 | initializationErrorString | string | optional |  |
+| id | [OfferID](#model-OfferID) | optional |  |
 
 
 ## <a name="model-OfferID"></a> OfferID
@@ -2394,12 +3251,39 @@ string
 | valueBytes | [ByteString](#model-ByteString) | optional |  |
 
 
+## <a name="model-Ports"></a> Ports
+
+| name | type | required | description |
+|------|------|----------|-------------|
+| defaultInstanceForType | [Ports](#model-Ports) | optional |  |
+| parserForType | [com.google.protobuf.Parser&lt;org.apache.mesos.Protos$Ports&gt;](#model-com.google.protobuf.Parser&lt;org.apache.mesos.Protos$Ports&gt;) | optional |  |
+| initialized | boolean | optional |  |
+| portsCount | int | optional |  |
+| serializedSize | int | optional |  |
+| allFields | [Map[FieldDescriptor,Object]](#model-Map[FieldDescriptor,Object]) | optional |  |
+| portsOrBuilderList | [List[? extends org.apache.mesos.Protos$PortOrBuilder]](#model-List[? extends org.apache.mesos.Protos$PortOrBuilder]) | optional |  |
+| descriptorForType | [Descriptor](#model-Descriptor) | optional |  |
+| portsList | [List[Port]](#model-List[Port]) | optional |  |
+| initializationErrorString | string | optional |  |
+| unknownFields | [UnknownFieldSet](#model-UnknownFieldSet) | optional |  |
+
+
+## <a name="model-PortsOrBuilder"></a> PortsOrBuilder
+
+| name | type | required | description |
+|------|------|----------|-------------|
+| portsCount | int | optional |  |
+| portsOrBuilderList | [List[? extends org.apache.mesos.Protos$PortOrBuilder]](#model-List[? extends org.apache.mesos.Protos$PortOrBuilder]) | optional |  |
+| portsList | [List[Port]](#model-List[Port]) | optional |  |
+
+
 ## <a name="model-Resources"></a> Resources
 
 | name | type | required | description |
 |------|------|----------|-------------|
 | numPorts | int | optional |  |
 | memoryMb | double | optional |  |
+| diskMb | double | optional |  |
 | cpus | double | optional |  |
 
 
@@ -2407,6 +3291,7 @@ string
 
 | name | type | required | description |
 |------|------|----------|-------------|
+| targetFolderRelativeToTask | string | optional |  |
 | s3Bucket | string | optional |  |
 | md5sum | string | optional |  |
 | filename | string | optional |  |
@@ -2419,6 +3304,7 @@ string
 
 | name | type | required | description |
 |------|------|----------|-------------|
+| targetFolderRelativeToTask | string | optional |  |
 | s3Bucket | string | optional |  |
 | md5sum | string | optional |  |
 | filename | string | optional |  |
@@ -2426,6 +3312,17 @@ string
 | s3ObjectKey | string | optional |  |
 | name | string | optional |  |
 | artifactFilename | string | optional |  |
+
+
+## <a name="model-SingularityBounceRequest"></a> SingularityBounceRequest
+
+| name | type | required | description |
+|------|------|----------|-------------|
+| skipHealthchecks | boolean | optional | Instruct replacement tasks for this bounce only to skip healthchecks |
+| durationMillis | long | optional | The number of milliseconds to wait before reversing the effects of this action (letting it expire) |
+| message | string | optional | A message to show to users about why this action was taken |
+| actionId | string | optional | An id to associate with this action for metadata purposes |
+| incremental | boolean | optional | If present and set to true, old tasks will be killed as soon as replacement tasks are available, instead of waiting for all replacement tasks to be healthy |
 
 
 ## <a name="model-SingularityContainerInfo"></a> SingularityContainerInfo
@@ -2437,6 +3334,14 @@ string
 | docker | [SingularityDockerInfo](#model-SingularityDockerInfo) | optional |  |
 
 
+## <a name="model-SingularityDeleteRequestRequest"></a> SingularityDeleteRequestRequest
+
+| name | type | required | description |
+|------|------|----------|-------------|
+| message | string | optional | A message to show to users about why this action was taken |
+| actionId | string | optional | An id to associate with this action for metadata purposes |
+
+
 ## <a name="model-SingularityDeploy"></a> SingularityDeploy
 
 | name | type | required | description |
@@ -2445,31 +3350,53 @@ string
 | resources | [com.hubspot.mesos.Resources](#model-com.hubspot.mesos.Resources) | optional | Resources required for this deploy. |
 | uris | Array[string] | optional | List of URIs to download before executing the deploy command. |
 | containerInfo | [SingularityContainerInfo](#model-SingularityContainerInfo) | optional | Container information for deployment into a container. |
+| loadBalancerDomains | [Set](#model-Set) | optional | List of domains to host this service on, for use with the load balancer api |
 | arguments | Array[string] | optional | Command arguments. |
+| taskEnv | [Map[int,Map[string,string]]](#model-Map[int,Map[string,string]]) | optional | Map of environment variable overrides for specific task instances. |
+| autoAdvanceDeploySteps | boolean | optional | automatically advance to the next target instance count after `deployStepWaitTimeMs` seconds |
 | serviceBasePath | string | optional | The base path for the API exposed by the deploy. Used in conjunction with the Load balancer API. |
 | customExecutorUser | string | optional | User to run custom executor as |
 | customExecutorSource | string | optional | Custom Mesos executor source. |
 | metadata | [Map[string,string]](#model-Map[string,string]) | optional | Map of metadata key/value pairs associated with the deployment. |
-| healthcheckTimeoutSeconds | long | optional | Single healthcheck HTTP timeout in seconds. |
 | healthcheckMaxRetries | int | optional | Maximum number of times to retry an individual healthcheck before failing the deploy. |
+| healthcheckTimeoutSeconds | long | optional | Single healthcheck HTTP timeout in seconds. |
 | healthcheckProtocol | [HealthcheckProtocol](#model-HealthcheckProtocol) | optional | Healthcheck protocol - HTTP or HTTPS |
+| taskLabels | [Map[int,Map[string,string]]](#model-Map[int,Map[string,string]]) | optional | Labels for specific tasks associated with this deploy, indexed by instance number |
+| healthcheckPortIndex | int | optional | Perform healthcheck on this dynamically allocated port (e.g. 0 for first port), defaults to first port |
 | healthcheckMaxTotalTimeoutSeconds | long | optional | Maximum amount of time to wait before failing a deploy for healthchecks to pass. |
+| labels | [Map[string,string]](#model-Map[string,string]) | optional | Labels for all tasks associated with this deploy |
 | healthcheckUri | string | optional | Deployment Healthcheck URI, if specified will be called after TASK_RUNNING. |
 | requestId | string | required | Singularity Request Id which is associated with this deploy. |
-| loadBalancerGroups | Array[string] | optional | List of load balancer groups associated with this deployment. |
+| loadBalancerGroups | [Set](#model-Set) | optional | List of load balancer groups associated with this deployment. |
+| deployStepWaitTimeMs | int | optional | wait this long between deploy steps |
 | skipHealthchecksOnDeploy | boolean | optional | Allows skipping of health checks when deploying. |
 | healthcheckIntervalSeconds | long | optional | Time to wait after a failed healthcheck to try again in seconds. |
 | command | string | optional | Command to execute for this deployment. |
 | executorData | [ExecutorData](#model-ExecutorData) | optional | Executor specific information |
+| loadBalancerAdditionalRoutes | Array[string] | optional | Additional routes besides serviceBasePath used by this service |
+| shell | boolean | optional | Override the shell property on the mesos task |
 | timestamp | long | optional | Deploy timestamp. |
+| deployInstanceCountPerStep | int | optional | deploy this many instances at a time |
 | considerHealthyAfterRunningForSeconds | long | optional | Number of seconds that a service must be healthy to consider the deployment to be successful. |
 | loadBalancerOptions | [Map[string,Object]](#model-Map[string,Object]) | optional | Map (Key/Value) of options for the load balancer. |
+| maxTaskRetries | int | optional | allowed at most this many failed tasks to be retried before failing the deploy |
+| loadBalancerPortIndex | int | optional | Send this port to the load balancer api (e.g. 0 for first port), defaults to first port |
+| loadBalancerTemplate | string | optional | Name of load balancer template to use if not using the default template |
 | customExecutorCmd | string | optional | Custom Mesos executor |
 | env | [Map[string,string]](#model-Map[string,string]) | optional | Map of environment variable definitions. |
 | customExecutorResources | [Resources](#model-Resources) | optional | Resources to allocate for custom mesos executor |
 | version | string | optional | Deploy version |
 | id | string | required | Singularity deploy id. |
 | deployHealthTimeoutSeconds | long | optional | Number of seconds that Singularity waits for this service to become healthy (for it to download artifacts, start running, and optionally pass healthchecks.) |
+
+
+## <a name="model-SingularityDeployFailure"></a> SingularityDeployFailure
+
+| name | type | required | description |
+|------|------|----------|-------------|
+| taskId | [SingularityTaskId](#model-SingularityTaskId) | optional |  |
+| message | string | optional |  |
+| reason | [SingularityDeployFailureReason](#model-SingularityDeployFailureReason) | optional |  Allowable values: TASK_FAILED_ON_STARTUP, TASK_FAILED_HEALTH_CHECKS, TASK_COULD_NOT_BE_SCHEDULED, TASK_NEVER_ENTERED_RUNNING, TASK_EXPECTED_RUNNING_FINISHED, DEPLOY_CANCELLED, DEPLOY_OVERDUE, FAILED_TO_SAVE_DEPLOY_STATE, LOAD_BALANCER_UPDATE_FAILED, PENDING_DEPLOY_REMOVED |
 
 
 ## <a name="model-SingularityDeployHistory"></a> SingularityDeployHistory
@@ -2488,17 +3415,32 @@ string
 |------|------|----------|-------------|
 | user | string | optional |  |
 | requestId | string | optional |  |
+| message | string | optional |  |
 | timestamp | long | optional |  |
 | deployId | string | optional |  |
+
+
+## <a name="model-SingularityDeployProgress"></a> SingularityDeployProgress
+
+| name | type | required | description |
+|------|------|----------|-------------|
+| autoAdvanceDeploySteps | boolean | optional |  |
+| stepComplete | boolean | optional |  |
+| deployStepWaitTimeMs | long | optional |  |
+| timestamp | long | optional |  |
+| deployInstanceCountPerStep | int | optional |  |
+| failedDeployTasks | [Set](#model-Set) | optional |  |
+| targetActiveInstances | int | optional |  |
 
 
 ## <a name="model-SingularityDeployRequest"></a> SingularityDeployRequest
 
 | name | type | required | description |
 |------|------|----------|-------------|
-| unpauseOnSuccessfulDeploy | boolean | optional | If deploy is successful, also unpause the request. |
-| deploy | [SingularityDeploy](#model-SingularityDeploy) | required | The Singularity deploy object |
-| user | string | optional | User owning this deploy. |
+| unpauseOnSuccessfulDeploy | boolean | optional | If deploy is successful, also unpause the request |
+| deploy | [SingularityDeploy](#model-SingularityDeploy) | required | The Singularity deploy object, containing all the required details about the Deploy |
+| updatedRequest | [SingularityRequest](#model-SingularityRequest) | optional | use this request data for this deploy, and update the request on successful deploy |
+| message | string | optional | A message to show users about this deploy (metadata) |
 
 
 ## <a name="model-SingularityDeployResult"></a> SingularityDeployResult
@@ -2507,6 +3449,7 @@ string
 |------|------|----------|-------------|
 | lbUpdate | [SingularityLoadBalancerUpdate](#model-SingularityLoadBalancerUpdate) | optional |  |
 | deployState | [DeployState](#model-DeployState) | optional |  Allowable values: SUCCEEDED, FAILED_INTERNAL_STATE, CANCELING, WAITING, OVERDUE, FAILED, CANCELED |
+| deployFailures | [Array[SingularityDeployFailure]](#model-SingularityDeployFailure) | optional |  |
 | message | string | optional |  |
 | timestamp | long | optional |  |
 
@@ -2541,6 +3484,8 @@ string
 
 | name | type | required | description |
 |------|------|----------|-------------|
+| parameters | [Map[string,string]](#model-Map[string,string]) | optional |  |
+| forcePullImage | boolean | optional |  |
 | privileged | boolean | optional |  |
 | network | [SingularityDockerNetworkType](#model-SingularityDockerNetworkType) | optional |  |
 | portMappings | [Array[SingularityDockerPortMapping]](#model-SingularityDockerPortMapping) | optional |  |
@@ -2558,17 +3503,84 @@ string
 | hostPortType | [SingularityPortMappingType](#model-SingularityPortMappingType) | optional |  Allowable values: LITERAL, FROM_OFFER |
 
 
+## <a name="model-SingularityExitCooldownRequest"></a> SingularityExitCooldownRequest
+
+| name | type | required | description |
+|------|------|----------|-------------|
+| skipHealthchecks | boolean | optional | Instruct new tasks that are scheduled immediately while executing cooldown to skip healthchecks |
+| message | string | optional | A message to show to users about why this action was taken |
+| actionId | string | optional | An id to associate with this action for metadata purposes |
+
+
+## <a name="model-SingularityExpiringBounce"></a> SingularityExpiringBounce
+
+| name | type | required | description |
+|------|------|----------|-------------|
+| user | string | optional |  |
+| requestId | string | optional |  |
+| startMillis | long | optional |  |
+| deployId | string | optional |  |
+| actionId | string | optional |  |
+| expiringAPIRequestObject | [T](#model-T) | optional |  |
+
+
+## <a name="model-SingularityExpiringPause"></a> SingularityExpiringPause
+
+| name | type | required | description |
+|------|------|----------|-------------|
+| user | string | optional |  |
+| requestId | string | optional |  |
+| startMillis | long | optional |  |
+| actionId | string | optional |  |
+| expiringAPIRequestObject | [T](#model-T) | optional |  |
+
+
+## <a name="model-SingularityExpiringScale"></a> SingularityExpiringScale
+
+| name | type | required | description |
+|------|------|----------|-------------|
+| revertToInstances | int | optional |  |
+| user | string | optional |  |
+| requestId | string | optional |  |
+| startMillis | long | optional |  |
+| actionId | string | optional |  |
+| expiringAPIRequestObject | [T](#model-T) | optional |  |
+
+
+## <a name="model-SingularityExpiringSkipHealthchecks"></a> SingularityExpiringSkipHealthchecks
+
+| name | type | required | description |
+|------|------|----------|-------------|
+| user | string | optional |  |
+| requestId | string | optional |  |
+| startMillis | long | optional |  |
+| actionId | string | optional |  |
+| expiringAPIRequestObject | [T](#model-T) | optional |  |
+| revertToSkipHealthchecks | boolean | optional |  |
+
+
 ## <a name="model-SingularityHostState"></a> SingularityHostState
 
 | name | type | required | description |
 |------|------|----------|-------------|
 | hostAddress | string | optional |  |
 | hostname | string | optional |  |
+| mesosConnected | boolean | optional |  |
 | driverStatus | string | optional |  |
 | master | boolean | optional |  |
 | mesosMaster | string | optional |  |
 | uptime | long | optional |  |
 | millisSinceLastOffer | long | optional |  |
+
+
+## <a name="model-SingularityKillTaskRequest"></a> SingularityKillTaskRequest
+
+| name | type | required | description |
+|------|------|----------|-------------|
+| waitForReplacementTask | boolean | optional | If set to true, treats this task kill as a bounce - launching another task and waiting for it to become healthy |
+| override | boolean | optional | If set to true, instructs the executor to attempt to immediately kill the task, rather than waiting gracefully |
+| message | string | optional | A message to show to users about why this action was taken |
+| actionId | string | optional | An id to associate with this action for metadata purposes |
 
 
 ## <a name="model-SingularityLoadBalancerUpdate"></a> SingularityLoadBalancerUpdate
@@ -2578,9 +3590,16 @@ string
 | loadBalancerState | [BaragonRequestState](#model-BaragonRequestState) | optional |  Allowable values: UNKNOWN, FAILED, WAITING, SUCCESS, CANCELING, CANCELED, INVALID_REQUEST_NOOP |
 | loadBalancerRequestId | [LoadBalancerRequestId](#model-LoadBalancerRequestId) | optional |  |
 | uri | string | optional |  |
-| method | [LoadBalancerMethod](#model-LoadBalancerMethod) | optional |  Allowable values: PRE_ENQUEUE, ENQUEUE, CHECK_STATE, CANCEL |
+| method | [LoadBalancerMethod](#model-LoadBalancerMethod) | optional |  Allowable values: PRE_ENQUEUE, ENQUEUE, CHECK_STATE, CANCEL, DELETE |
 | message | string | optional |  |
 | timestamp | long | optional |  |
+
+
+## <a name="model-SingularityMachineChangeRequest"></a> SingularityMachineChangeRequest
+
+| name | type | required | description |
+|------|------|----------|-------------|
+| message | string | optional | A message to show to users about why this action was taken |
 
 
 ## <a name="model-SingularityMachineStateHistoryUpdate"></a> SingularityMachineStateHistoryUpdate
@@ -2589,6 +3608,7 @@ string
 |------|------|----------|-------------|
 | state | [MachineState](#model-MachineState) | optional |  Allowable values: MISSING_ON_STARTUP, ACTIVE, STARTING_DECOMMISSION, DECOMMISSIONING, DECOMMISSIONED, DEAD, FROZEN |
 | user | string | optional |  |
+| message | string | optional |  |
 | timestamp | long | optional |  |
 | objectId | string | optional |  |
 
@@ -2597,8 +3617,10 @@ string
 
 | name | type | required | description |
 |------|------|----------|-------------|
-| user | string | optional |  |
-| killTasks | boolean | optional |  |
+| durationMillis | long | optional | The number of milliseconds to wait before reversing the effects of this action (letting it expire) |
+| killTasks | boolean | optional | If set to false, tasks will be allowed to finish instead of killed immediately |
+| message | string | optional | A message to show to users about why this action was taken |
+| actionId | string | optional | An id to associate with this action for metadata purposes |
 
 
 ## <a name="model-SingularityPendingDeploy"></a> SingularityPendingDeploy
@@ -2606,6 +3628,8 @@ string
 | name | type | required | description |
 |------|------|----------|-------------|
 | currentDeployState | [DeployState](#model-DeployState) | optional |  Allowable values: SUCCEEDED, FAILED_INTERNAL_STATE, CANCELING, WAITING, OVERDUE, FAILED, CANCELED |
+| updatedRequest | [SingularityRequest](#model-SingularityRequest) | optional |  |
+| deployProgress | [SingularityDeployProgress](#model-SingularityDeployProgress) | optional |  |
 | lastLoadBalancerUpdate | [SingularityLoadBalancerUpdate](#model-SingularityLoadBalancerUpdate) | optional |  |
 | deployMarker | [SingularityDeployMarker](#model-SingularityDeployMarker) | optional |  |
 
@@ -2614,22 +3638,29 @@ string
 
 | name | type | required | description |
 |------|------|----------|-------------|
+| resources | [Resources](#model-Resources) | optional |  |
 | runId | string | optional |  |
+| skipHealthchecks | boolean | optional |  |
 | user | string | optional |  |
 | requestId | string | optional |  |
+| message | string | optional |  |
 | timestamp | long | optional |  |
 | deployId | string | optional |  |
+| actionId | string | optional |  |
 | cmdLineArgsList | Array[string] | optional |  |
-| pendingType | [PendingType](#model-PendingType) | optional |  Allowable values: IMMEDIATE, ONEOFF, BOUNCE, NEW_DEPLOY, UNPAUSED, RETRY, UPDATED_REQUEST, DECOMISSIONED_SLAVE_OR_RACK, TASK_DONE, STARTUP |
+| pendingType | [PendingType](#model-PendingType) | optional |  Allowable values: IMMEDIATE, ONEOFF, BOUNCE, NEW_DEPLOY, NEXT_DEPLOY_STEP, UNPAUSED, RETRY, UPDATED_REQUEST, DECOMISSIONED_SLAVE_OR_RACK, TASK_DONE, STARTUP, CANCEL_BOUNCE, TASK_BOUNCE, DEPLOY_CANCELLED |
 
 
 ## <a name="model-SingularityPendingTask"></a> SingularityPendingTask
 
 | name | type | required | description |
 |------|------|----------|-------------|
+| resources | [Resources](#model-Resources) | optional |  |
 | runId | string | optional |  |
+| skipHealthchecks | boolean | optional |  |
 | pendingTaskId | [SingularityPendingTaskId](#model-SingularityPendingTaskId) | optional |  |
 | user | string | optional |  |
+| message | string | optional |  |
 | cmdLineArgsList | Array[string] | optional |  |
 
 
@@ -2640,7 +3671,7 @@ string
 | nextRunAt | long | optional |  |
 | requestId | string | optional |  |
 | deployId | string | optional |  |
-| pendingType | [PendingType](#model-PendingType) | optional |  Allowable values: IMMEDIATE, ONEOFF, BOUNCE, NEW_DEPLOY, UNPAUSED, RETRY, UPDATED_REQUEST, DECOMISSIONED_SLAVE_OR_RACK, TASK_DONE, STARTUP |
+| pendingType | [PendingType](#model-PendingType) | optional |  Allowable values: IMMEDIATE, ONEOFF, BOUNCE, NEW_DEPLOY, NEXT_DEPLOY_STEP, UNPAUSED, RETRY, UPDATED_REQUEST, DECOMISSIONED_SLAVE_OR_RACK, TASK_DONE, STARTUP, CANCEL_BOUNCE, TASK_BOUNCE, DEPLOY_CANCELLED |
 | instanceNo | int | optional |  |
 | createdAt | long | optional |  |
 | id | string | optional |  |
@@ -2659,22 +3690,31 @@ string
 
 | name | type | required | description |
 |------|------|----------|-------------|
+| hideEvenNumberAcrossRacksHint | boolean | optional |  |
+| readOnlyGroups | [Set](#model-Set) | optional |  |
+| taskLogErrorRegexCaseSensitive | boolean | optional |  |
 | schedule | string | optional |  |
+| skipHealthchecks | boolean | optional |  |
 | waitAtLeastMillisAfterTaskFinishesForReschedule | long | optional |  |
 | rackAffinity | Array[string] | optional |  |
-| daemon | boolean | optional |  |
+| emailConfigurationOverrides | [Map[SingularityEmailType,List[SingularityEmailDestination]]](#model-Map[SingularityEmailType,List[SingularityEmailDestination]]) | optional |  |
 | slavePlacement | [SlavePlacement](#model-SlavePlacement) | optional |  |
+| bounceAfterScale | boolean | optional |  |
 | group | string | optional |  |
 | rackSensitive | boolean | optional |  |
+| allowedSlaveAttributes | [Map[string,string]](#model-Map[string,string]) | optional |  |
 | owners | Array[string] | optional |  |
 | requestType | [RequestType](#model-RequestType) | optional |  Allowable values: SERVICE, WORKER, SCHEDULED, ON_DEMAND, RUN_ONCE |
-| quartzSchedule | string | optional |  |
 | scheduledExpectedRuntimeMillis | long | optional |  |
-| loadBalanced | boolean | optional |  |
+| quartzSchedule | string | optional |  |
+| requiredSlaveAttributes | [Map[string,string]](#model-Map[string,string]) | optional |  |
 | numRetriesOnFailure | int | optional |  |
+| loadBalanced | boolean | optional |  |
 | killOldNonLongRunningTasksAfterMillis | long | optional |  |
 | instances | int | optional |  |
 | scheduleType | [ScheduleType](#model-ScheduleType) | optional |  |
+| scheduleTimeZone | string | optional |  |
+| taskLogErrorRegex | string | optional |  |
 | id | string | optional |  |
 
 
@@ -2682,12 +3722,15 @@ string
 
 | name | type | required | description |
 |------|------|----------|-------------|
+| skipHealthchecks | boolean | optional |  |
 | requestId | string | optional |  |
 | user | string | optional |  |
 | killTasks | boolean | optional |  |
-| cleanupType | [RequestCleanupType](#model-RequestCleanupType) | optional |  Allowable values: DELETING, PAUSING, BOUNCE |
+| cleanupType | [RequestCleanupType](#model-RequestCleanupType) | optional |  Allowable values: DELETING, PAUSING, BOUNCE, INCREMENTAL_BOUNCE |
+| message | string | optional |  |
 | timestamp | long | optional |  |
 | deployId | string | optional |  |
+| actionId | string | optional |  |
 
 
 ## <a name="model-SingularityRequestDeployState"></a> SingularityRequestDeployState
@@ -2704,29 +3747,37 @@ string
 | name | type | required | description |
 |------|------|----------|-------------|
 | user | string | optional |  |
+| message | string | optional |  |
 | request | [SingularityRequest](#model-SingularityRequest) | optional |  |
-| eventType | [RequestHistoryType](#model-RequestHistoryType) | optional |  Allowable values: CREATED, UPDATED, DELETED, PAUSED, UNPAUSED, ENTERED_COOLDOWN, EXITED_COOLDOWN, FINISHED, DEPLOYED_TO_UNPAUSE, BOUNCED |
+| eventType | [RequestHistoryType](#model-RequestHistoryType) | optional |  Allowable values: CREATED, UPDATED, DELETED, PAUSED, UNPAUSED, ENTERED_COOLDOWN, EXITED_COOLDOWN, FINISHED, DEPLOYED_TO_UNPAUSE, BOUNCED, SCALED, SCALE_REVERTED |
 | createdAt | long | optional |  |
-
-
-## <a name="model-SingularityRequestInstances"></a> SingularityRequestInstances
-
-| name | type | required | description |
-|------|------|----------|-------------|
-| instances | int | optional |  |
-| id | string | optional |  |
 
 
 ## <a name="model-SingularityRequestParent"></a> SingularityRequestParent
 
 | name | type | required | description |
 |------|------|----------|-------------|
+| expiringSkipHealthchecks | [SingularityExpiringSkipHealthchecks](#model-SingularityExpiringSkipHealthchecks) | optional |  |
 | state | [RequestState](#model-RequestState) | optional |  Allowable values: ACTIVE, DELETED, PAUSED, SYSTEM_COOLDOWN, FINISHED, DEPLOYING_TO_UNPAUSE |
 | pendingDeploy | [SingularityDeploy](#model-SingularityDeploy) | optional |  |
 | activeDeploy | [SingularityDeploy](#model-SingularityDeploy) | optional |  |
+| expiringPause | [SingularityExpiringPause](#model-SingularityExpiringPause) | optional |  |
+| expiringBounce | [SingularityExpiringBounce](#model-SingularityExpiringBounce) | optional |  |
 | request | [SingularityRequest](#model-SingularityRequest) | optional |  |
 | pendingDeployState | [SingularityPendingDeploy](#model-SingularityPendingDeploy) | optional |  |
+| expiringScale | [SingularityExpiringScale](#model-SingularityExpiringScale) | optional |  |
 | requestDeployState | [SingularityRequestDeployState](#model-SingularityRequestDeployState) | optional |  |
+
+
+## <a name="model-SingularityRunNowRequest"></a> SingularityRunNowRequest
+
+| name | type | required | description |
+|------|------|----------|-------------|
+| resources | [Resources](#model-Resources) | optional | Override the resources from the active deploy for this run |
+| runId | string | optional | An id to associate with this request which will be associated with the corresponding launched tasks |
+| skipHealthchecks | boolean | optional | If set to true, healthchecks will be skipped for this task run |
+| commandLineArgs | Array[string] | optional | Command line arguments to be passed to the task |
+| message | string | optional | A message to show to users about why this action was taken |
 
 
 ## <a name="model-SingularitySandbox"></a> SingularitySandbox
@@ -2749,11 +3800,43 @@ string
 | name | string | optional | Filename |
 
 
+## <a name="model-SingularityScaleRequest"></a> SingularityScaleRequest
+
+| name | type | required | description |
+|------|------|----------|-------------|
+| skipHealthchecks | boolean | optional | If set to true, healthchecks will be skipped while scaling this request (only) |
+| durationMillis | long | optional | The number of milliseconds to wait before reversing the effects of this action (letting it expire) |
+| message | string | optional | A message to show to users about why this action was taken |
+| actionId | string | optional | An id to associate with this action for metadata purposes |
+| instances | int | optional | The number of instances to scale to |
+
+
+## <a name="model-SingularityShellCommand"></a> SingularityShellCommand
+
+| name | type | required | description |
+|------|------|----------|-------------|
+| logfileName | string | optional |  |
+| user | string | optional |  |
+| options | Array[string] | optional |  |
+| name | string | optional |  |
+
+
+## <a name="model-SingularitySkipHealthchecksRequest"></a> SingularitySkipHealthchecksRequest
+
+| name | type | required | description |
+|------|------|----------|-------------|
+| skipHealthchecks | boolean | optional | If set to true, healthchecks will be skipped for all tasks for this request until reversed |
+| durationMillis | long | optional | The number of milliseconds to wait before reversing the effects of this action (letting it expire) |
+| message | string | optional | A message to show to users about why this action was taken |
+| actionId | string | optional | An id to associate with this action for metadata purposes |
+
+
 ## <a name="model-SingularitySlave"></a> SingularitySlave
 
 | name | type | required | description |
 |------|------|----------|-------------|
 | currentState | [SingularityMachineStateHistoryUpdate](#model-SingularityMachineStateHistoryUpdate) | optional |  |
+| attributes | [Map[string,string]](#model-Map[string,string]) | optional |  |
 | host | string | optional | Slave hostname |
 | rackId | string | optional | Slave rack ID |
 | firstSeenAt | long | optional |  |
@@ -2784,6 +3867,7 @@ string
 | unknownSlaves | int | optional |  |
 | activeRequests | int | optional |  |
 | futureTasks | int | optional |  |
+| lbCleanupRequests | int | optional |  |
 | decommissioningRacks | int | optional |  |
 | finishedRequests | int | optional |  |
 | deadRacks | int | optional |  |
@@ -2816,9 +3900,10 @@ string
 |------|------|----------|-------------|
 | taskId | [SingularityTaskId](#model-SingularityTaskId) | optional |  |
 | user | string | optional |  |
-| cleanupType | [TaskCleanupType](#model-TaskCleanupType) | optional |  Allowable values: USER_REQUESTED, DECOMISSIONING, SCALING_DOWN, BOUNCING, DEPLOY_FAILED, NEW_DEPLOY_SUCCEEDED, DEPLOY_CANCELED, UNHEALTHY_NEW_TASK, OVERDUE_NEW_TASK |
+| cleanupType | [TaskCleanupType](#model-TaskCleanupType) | optional |  Allowable values: USER_REQUESTED, USER_REQUESTED_TASK_BOUNCE, DECOMISSIONING, SCALING_DOWN, BOUNCING, INCREMENTAL_BOUNCE, DEPLOY_FAILED, NEW_DEPLOY_SUCCEEDED, DEPLOY_STEP_FINISHED, DEPLOY_CANCELED, UNHEALTHY_NEW_TASK, OVERDUE_NEW_TASK, USER_REQUESTED_DESTROY, INCREMENTAL_DEPLOY_FAILED, INCREMENTAL_DEPLOY_CANCELLED |
 | message | string | optional |  |
 | timestamp | long | optional |  |
+| actionId | string | optional |  |
 
 
 ## <a name="model-SingularityTaskHealthcheckResult"></a> SingularityTaskHealthcheckResult
@@ -2841,6 +3926,8 @@ string
 | task | [SingularityTask](#model-SingularityTask) | optional |  |
 | healthcheckResults | [Array[SingularityTaskHealthcheckResult]](#model-SingularityTaskHealthcheckResult) | optional |  |
 | loadBalancerUpdates | [Array[SingularityLoadBalancerUpdate]](#model-SingularityLoadBalancerUpdate) | optional |  |
+| taskMetadata | [Array[SingularityTaskMetadata]](#model-SingularityTaskMetadata) | optional |  |
+| shellCommandHistory | [Array[SingularityTaskShellCommandHistory]](#model-SingularityTaskShellCommandHistory) | optional |  |
 | taskUpdates | [Array[SingularityTaskHistoryUpdate]](#model-SingularityTaskHistoryUpdate) | optional |  |
 
 
@@ -2849,8 +3936,9 @@ string
 | name | type | required | description |
 |------|------|----------|-------------|
 | taskId | [SingularityTaskId](#model-SingularityTaskId) | optional |  |
+| statusReason | string | optional |  |
 | statusMessage | string | optional |  |
-| taskState | [ExtendedTaskState](#model-ExtendedTaskState) | optional |  Allowable values: TASK_LAUNCHED, TASK_STAGING, TASK_STARTING, TASK_RUNNING, TASK_CLEANING, TASK_FINISHED, TASK_FAILED, TASK_KILLED, TASK_LOST, TASK_LOST_WHILE_DOWN, TASK_ERROR |
+| taskState | [ExtendedTaskState](#model-ExtendedTaskState) | optional |  Allowable values: TASK_LAUNCHED, TASK_STAGING, TASK_STARTING, TASK_RUNNING, TASK_CLEANING, TASK_KILLING, TASK_FINISHED, TASK_FAILED, TASK_KILLED, TASK_LOST, TASK_LOST_WHILE_DOWN, TASK_ERROR |
 | timestamp | long | optional |  |
 
 
@@ -2879,6 +3967,29 @@ string
 | lastTaskState | [ExtendedTaskState](#model-ExtendedTaskState) | optional |  |
 
 
+## <a name="model-SingularityTaskMetadata"></a> SingularityTaskMetadata
+
+| name | type | required | description |
+|------|------|----------|-------------|
+| taskId | [SingularityTaskId](#model-SingularityTaskId) | optional |  |
+| level | [MetadataLevel](#model-MetadataLevel) | optional |  Allowable values: INFO, WARN, ERROR |
+| type | string | optional |  |
+| user | string | optional |  |
+| message | string | optional |  |
+| title | string | optional |  |
+| timestamp | long | optional |  |
+
+
+## <a name="model-SingularityTaskMetadataRequest"></a> SingularityTaskMetadataRequest
+
+| name | type | required | description |
+|------|------|----------|-------------|
+| level | [MetadataLevel](#model-MetadataLevel) | optional |  |
+| type | string | optional |  |
+| message | string | optional |  |
+| title | string | optional |  |
+
+
 ## <a name="model-SingularityTaskRequest"></a> SingularityTaskRequest
 
 | name | type | required | description |
@@ -2886,6 +3997,63 @@ string
 | deploy | [SingularityDeploy](#model-SingularityDeploy) | optional |  |
 | request | [SingularityRequest](#model-SingularityRequest) | optional |  |
 | pendingTask | [SingularityPendingTask](#model-SingularityPendingTask) | optional |  |
+
+
+## <a name="model-SingularityTaskShellCommandHistory"></a> SingularityTaskShellCommandHistory
+
+| name | type | required | description |
+|------|------|----------|-------------|
+| shellRequest | [SingularityTaskShellCommandRequest](#model-SingularityTaskShellCommandRequest) | optional |  |
+| shellUpdates | [Array[SingularityTaskShellCommandUpdate]](#model-SingularityTaskShellCommandUpdate) | optional |  |
+
+
+## <a name="model-SingularityTaskShellCommandRequest"></a> SingularityTaskShellCommandRequest
+
+| name | type | required | description |
+|------|------|----------|-------------|
+| taskId | [SingularityTaskId](#model-SingularityTaskId) | optional |  |
+| user | string | optional |  |
+| timestamp | long | optional |  |
+| shellCommand | [SingularityShellCommand](#model-SingularityShellCommand) | optional |  |
+
+
+## <a name="model-SingularityTaskShellCommandRequestId"></a> SingularityTaskShellCommandRequestId
+
+| name | type | required | description |
+|------|------|----------|-------------|
+| taskId | [SingularityTaskId](#model-SingularityTaskId) | optional |  |
+| name | string | optional |  |
+| timestamp | long | optional |  |
+| id | string | optional |  |
+
+
+## <a name="model-SingularityTaskShellCommandUpdate"></a> SingularityTaskShellCommandUpdate
+
+| name | type | required | description |
+|------|------|----------|-------------|
+| updateType | [UpdateType](#model-UpdateType) | optional |  Allowable values: INVALID, ACKED, STARTED, FINISHED, FAILED |
+| outputFilename | string | optional |  |
+| message | string | optional |  |
+| timestamp | long | optional |  |
+| shellRequestId | [SingularityTaskShellCommandRequestId](#model-SingularityTaskShellCommandRequestId) | optional |  |
+
+
+## <a name="model-SingularityUnpauseRequest"></a> SingularityUnpauseRequest
+
+| name | type | required | description |
+|------|------|----------|-------------|
+| skipHealthchecks | boolean | optional | If set to true, instructs new tasks that are scheduled immediately while unpausing to skip healthchecks |
+| message | string | optional | A message to show to users about why this action was taken |
+| actionId | string | optional | An id to associate with this action for metadata purposes |
+
+
+## <a name="model-SingularityUpdatePendingDeployRequest"></a> SingularityUpdatePendingDeployRequest
+
+| name | type | required | description |
+|------|------|----------|-------------|
+| requestId | string | optional |  |
+| deployId | string | optional |  |
+| targetActiveInstances | int | optional |  |
 
 
 ## <a name="model-SingularityVolume"></a> SingularityVolume
@@ -2906,6 +4074,14 @@ string
 | user | string | optional | User that created webhook. |
 | timestamp | long | optional |  |
 | id | string | optional | Unique ID for webhook. |
+
+
+## <a name="model-SingularityWebhookSummary"></a> SingularityWebhookSummary
+
+| name | type | required | description |
+|------|------|----------|-------------|
+| webhook | [SingularityWebhook](#model-SingularityWebhook) | optional |  |
+| queueSize | int | optional |  |
 
 
 ## <a name="model-SlaveID"></a> SlaveID
@@ -2962,14 +4138,16 @@ string
 |------|------|----------|-------------|
 | commandOrBuilder | [CommandInfoOrBuilder](#model-CommandInfoOrBuilder) | optional |  |
 | defaultInstanceForType | [TaskInfo](#model-TaskInfo) | optional |  |
-| taskIdOrBuilder | [TaskIDOrBuilder](#model-TaskIDOrBuilder) | optional |  |
 | taskId | [TaskID](#model-TaskID) | optional |  |
+| taskIdOrBuilder | [TaskIDOrBuilder](#model-TaskIDOrBuilder) | optional |  |
 | parserForType | [com.google.protobuf.Parser&lt;org.apache.mesos.Protos$TaskInfo&gt;](#model-com.google.protobuf.Parser&lt;org.apache.mesos.Protos$TaskInfo&gt;) | optional |  |
 | slaveIdOrBuilder | [SlaveIDOrBuilder](#model-SlaveIDOrBuilder) | optional |  |
 | resourcesOrBuilderList | [List[? extends org.apache.mesos.Protos$ResourceOrBuilder]](#model-List[? extends org.apache.mesos.Protos$ResourceOrBuilder]) | optional |  |
+| labelsOrBuilder | [LabelsOrBuilder](#model-LabelsOrBuilder) | optional |  |
 | data | [ByteString](#model-ByteString) | optional |  |
 | executor | [ExecutorInfo](#model-ExecutorInfo) | optional |  |
 | containerOrBuilder | [ContainerInfoOrBuilder](#model-ContainerInfoOrBuilder) | optional |  |
+| labels | [Labels](#model-Labels) | optional |  |
 | executorOrBuilder | [ExecutorInfoOrBuilder](#model-ExecutorInfoOrBuilder) | optional |  |
 | container | [ContainerInfo](#model-ContainerInfo) | optional |  |
 | healthCheckOrBuilder | [HealthCheckOrBuilder](#model-HealthCheckOrBuilder) | optional |  |
@@ -2983,9 +4161,103 @@ string
 | slaveId | [SlaveID](#model-SlaveID) | optional |  |
 | allFields | [Map[FieldDescriptor,Object]](#model-Map[FieldDescriptor,Object]) | optional |  |
 | descriptorForType | [Descriptor](#model-Descriptor) | optional |  |
+| discovery | [DiscoveryInfo](#model-DiscoveryInfo) | optional |  |
 | unknownFields | [UnknownFieldSet](#model-UnknownFieldSet) | optional |  |
 | resourcesCount | int | optional |  |
 | initializationErrorString | string | optional |  |
+| discoveryOrBuilder | [DiscoveryInfoOrBuilder](#model-DiscoveryInfoOrBuilder) | optional |  |
+
+
+## <a name="model-TimeInfo"></a> TimeInfo
+
+| name | type | required | description |
+|------|------|----------|-------------|
+| defaultInstanceForType | [TimeInfo](#model-TimeInfo) | optional |  |
+| parserForType | [com.google.protobuf.Parser&lt;org.apache.mesos.Protos$TimeInfo&gt;](#model-com.google.protobuf.Parser&lt;org.apache.mesos.Protos$TimeInfo&gt;) | optional |  |
+| nanoseconds | long | optional |  |
+| initialized | boolean | optional |  |
+| serializedSize | int | optional |  |
+| allFields | [Map[FieldDescriptor,Object]](#model-Map[FieldDescriptor,Object]) | optional |  |
+| descriptorForType | [Descriptor](#model-Descriptor) | optional |  |
+| initializationErrorString | string | optional |  |
+| unknownFields | [UnknownFieldSet](#model-UnknownFieldSet) | optional |  |
+
+
+## <a name="model-TimeInfoOrBuilder"></a> TimeInfoOrBuilder
+
+| name | type | required | description |
+|------|------|----------|-------------|
+| nanoseconds | long | optional |  |
+
+
+## <a name="model-URL"></a> URL
+
+| name | type | required | description |
+|------|------|----------|-------------|
+| defaultInstanceForType | [URL](#model-URL) | optional |  |
+| queryCount | int | optional |  |
+| queryList | [List[Parameter]](#model-List[Parameter]) | optional |  |
+| queryOrBuilderList | [List[? extends org.apache.mesos.Protos$ParameterOrBuilder]](#model-List[? extends org.apache.mesos.Protos$ParameterOrBuilder]) | optional |  |
+| fragment | string | optional |  |
+| parserForType | [com.google.protobuf.Parser&lt;org.apache.mesos.Protos$URL&gt;](#model-com.google.protobuf.Parser&lt;org.apache.mesos.Protos$URL&gt;) | optional |  |
+| address | [Address](#model-Address) | optional |  |
+| schemeBytes | [ByteString](#model-ByteString) | optional |  |
+| addressOrBuilder | [AddressOrBuilder](#model-AddressOrBuilder) | optional |  |
+| pathBytes | [ByteString](#model-ByteString) | optional |  |
+| scheme | string | optional |  |
+| initialized | boolean | optional |  |
+| fragmentBytes | [ByteString](#model-ByteString) | optional |  |
+| serializedSize | int | optional |  |
+| allFields | [Map[FieldDescriptor,Object]](#model-Map[FieldDescriptor,Object]) | optional |  |
+| descriptorForType | [Descriptor](#model-Descriptor) | optional |  |
+| path | string | optional |  |
+| unknownFields | [UnknownFieldSet](#model-UnknownFieldSet) | optional |  |
+| initializationErrorString | string | optional |  |
+
+
+## <a name="model-URLOrBuilder"></a> URLOrBuilder
+
+| name | type | required | description |
+|------|------|----------|-------------|
+| queryCount | int | optional |  |
+| queryOrBuilderList | [List[? extends org.apache.mesos.Protos$ParameterOrBuilder]](#model-List[? extends org.apache.mesos.Protos$ParameterOrBuilder]) | optional |  |
+| queryList | [List[Parameter]](#model-List[Parameter]) | optional |  |
+| fragment | string | optional |  |
+| address | [Address](#model-Address) | optional |  |
+| schemeBytes | [ByteString](#model-ByteString) | optional |  |
+| addressOrBuilder | [AddressOrBuilder](#model-AddressOrBuilder) | optional |  |
+| pathBytes | [ByteString](#model-ByteString) | optional |  |
+| fragmentBytes | [ByteString](#model-ByteString) | optional |  |
+| scheme | string | optional |  |
+| path | string | optional |  |
+
+
+## <a name="model-Unavailability"></a> Unavailability
+
+| name | type | required | description |
+|------|------|----------|-------------|
+| defaultInstanceForType | [Unavailability](#model-Unavailability) | optional |  |
+| parserForType | [com.google.protobuf.Parser&lt;org.apache.mesos.Protos$Unavailability&gt;](#model-com.google.protobuf.Parser&lt;org.apache.mesos.Protos$Unavailability&gt;) | optional |  |
+| durationOrBuilder | [DurationInfoOrBuilder](#model-DurationInfoOrBuilder) | optional |  |
+| initialized | boolean | optional |  |
+| startOrBuilder | [TimeInfoOrBuilder](#model-TimeInfoOrBuilder) | optional |  |
+| serializedSize | int | optional |  |
+| allFields | [Map[FieldDescriptor,Object]](#model-Map[FieldDescriptor,Object]) | optional |  |
+| descriptorForType | [Descriptor](#model-Descriptor) | optional |  |
+| duration | [DurationInfo](#model-DurationInfo) | optional |  |
+| start | [TimeInfo](#model-TimeInfo) | optional |  |
+| initializationErrorString | string | optional |  |
+| unknownFields | [UnknownFieldSet](#model-UnknownFieldSet) | optional |  |
+
+
+## <a name="model-UnavailabilityOrBuilder"></a> UnavailabilityOrBuilder
+
+| name | type | required | description |
+|------|------|----------|-------------|
+| durationOrBuilder | [DurationInfoOrBuilder](#model-DurationInfoOrBuilder) | optional |  |
+| startOrBuilder | [TimeInfoOrBuilder](#model-TimeInfoOrBuilder) | optional |  |
+| duration | [DurationInfo](#model-DurationInfo) | optional |  |
+| start | [TimeInfo](#model-TimeInfo) | optional |  |
 
 
 ## <a name="model-UnknownFieldSet"></a> UnknownFieldSet

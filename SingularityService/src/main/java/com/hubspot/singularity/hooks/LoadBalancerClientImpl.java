@@ -2,16 +2,13 @@ package com.hubspot.singularity.hooks;
 
 import java.io.IOException;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import javax.ws.rs.HEAD;
-
-import com.hubspot.baragon.models.RequestAction;
+import org.apache.mesos.Protos;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,6 +21,7 @@ import com.hubspot.baragon.models.BaragonRequest;
 import com.hubspot.baragon.models.BaragonRequestState;
 import com.hubspot.baragon.models.BaragonResponse;
 import com.hubspot.baragon.models.BaragonService;
+import com.hubspot.baragon.models.RequestAction;
 import com.hubspot.baragon.models.UpstreamInfo;
 import com.hubspot.mesos.JavaUtils;
 import com.hubspot.singularity.LoadBalancerRequestType.LoadBalancerRequestId;
@@ -52,6 +50,7 @@ public class LoadBalancerClientImpl implements LoadBalancerClient {
 
   private final AsyncHttpClient httpClient;
   private final ObjectMapper objectMapper;
+  private final Optional<String> taskLabelForLoadBalancerUpstreamGroup;
 
   private static final String OPERATION_URI = "%s/%s";
 
@@ -62,6 +61,7 @@ public class LoadBalancerClientImpl implements LoadBalancerClient {
     this.loadBalancerUri = configuration.getLoadBalancerUri();
     this.loadBalancerTimeoutMillis = configuration.getLoadBalancerRequestTimeoutMillis();
     this.loadBalancerQueryParams = configuration.getLoadBalancerQueryParams();
+    this.taskLabelForLoadBalancerUpstreamGroup = configuration.getTaskLabelForLoadBalancerUpstreamGroup();
   }
 
   private String getLoadBalancerUri(LoadBalancerRequestId loadBalancerRequestId) {
@@ -170,25 +170,38 @@ public class LoadBalancerClientImpl implements LoadBalancerClient {
       List<SingularityTask> remove) {
     final List<String> serviceOwners = request.getOwners().or(Collections.<String> emptyList());
     final Set<String> loadBalancerGroups = deploy.getLoadBalancerGroups().or(Collections.<String>emptySet());
-    final BaragonService lbService = new BaragonService(request.getId(), serviceOwners, deploy.getServiceBasePath().get(), loadBalancerGroups, deploy.getLoadBalancerOptions().orNull());
+    final BaragonService lbService = new BaragonService(deploy.getLoadBalancerServiceIdOverride().or(request.getId()), serviceOwners, deploy.getServiceBasePath().get(),
+      deploy.getLoadBalancerAdditionalRoutes().or(Collections.<String>emptyList()), loadBalancerGroups, deploy.getLoadBalancerOptions().orNull(),
+      deploy.getLoadBalancerTemplate(), deploy.getLoadBalancerDomains().or(Collections.<String>emptySet()));
 
-    final List<UpstreamInfo> addUpstreams = tasksToUpstreams(add, loadBalancerRequestId.toString());
-    final List<UpstreamInfo> removeUpstreams = tasksToUpstreams(remove, loadBalancerRequestId.toString());
+    final List<UpstreamInfo> addUpstreams = tasksToUpstreams(add, loadBalancerRequestId.toString(), deploy.getLoadBalancerUpstreamGroup());
+    final List<UpstreamInfo> removeUpstreams = tasksToUpstreams(remove, loadBalancerRequestId.toString(), deploy.getLoadBalancerUpstreamGroup());
 
     final BaragonRequest loadBalancerRequest = new BaragonRequest(loadBalancerRequestId.toString(), lbService, addUpstreams, removeUpstreams);
 
     return sendBaragonRequest(loadBalancerRequestId, loadBalancerRequest, LoadBalancerMethod.ENQUEUE);
   }
 
-  private List<UpstreamInfo> tasksToUpstreams(List<SingularityTask> tasks, String requestId) {
+  private List<UpstreamInfo> tasksToUpstreams(List<SingularityTask> tasks, String requestId, Optional<String> loadBalancerUpstreamGroup) {
     final List<UpstreamInfo> upstreams = Lists.newArrayListWithCapacity(tasks.size());
 
     for (SingularityTask task : tasks) {
-      final Optional<Long> maybeFirstPort = task.getFirstPort();
+      final Optional<Long> maybeLoadBalancerPort = task.getPortByIndex(task.getTaskRequest().getDeploy().getLoadBalancerPortIndex().or(0));
 
-      if (maybeFirstPort.isPresent()) {
-        String upstream = String.format("%s:%d", task.getOffer().getHostname(), maybeFirstPort.get());
-        upstreams.add(new UpstreamInfo(upstream, Optional.of(requestId), task.getRackId()));
+      if (maybeLoadBalancerPort.isPresent()) {
+        String upstream = String.format("%s:%d", task.getOffer().getHostname(), maybeLoadBalancerPort.get());
+        Optional<String> group = loadBalancerUpstreamGroup;
+
+        if (taskLabelForLoadBalancerUpstreamGroup.isPresent()) {
+          for (Protos.Label label : task.getMesosTask().getLabels().getLabelsList()) {
+            if (label.hasKey() && label.getKey().equals(taskLabelForLoadBalancerUpstreamGroup.get()) && label.hasValue()) {
+              group = Optional.of(label.getValue());
+              break;
+            }
+          }
+        }
+
+        upstreams.add(new UpstreamInfo(upstream, Optional.of(requestId), task.getRackId(), Optional.<String>absent(), group));
       } else {
         LOG.warn("Task {} is missing port but is being passed to LB  ({})", task.getTaskId(), task);
       }

@@ -21,6 +21,7 @@ Singularity (Service) is configured by DropWizard via a YAML file referenced on 
     - [Resource Limits](#resource-limits)
     - [Racks](#racks)
     - [Slaves](#slaves)
+  - [Network Configuration](#network-configuration)
   - [Database](#database)
     - [History Purging](#history-purging)
   - [S3](#s3)
@@ -39,7 +40,7 @@ These are settings that are more likely to be altered.
 |-----------|---------|-------------|------|
 | allowRequestsWithoutOwners | true | If false, submitting a request without at least one owner will return a 400 | boolean |
 | commonHostnameSuffixToOmit | null | If specified, will remove this hostname suffix from all taskIds | string |
-| defaultSlavePlacement | GREEDY | See [Slave Placement](../details.md#user-content-placement) | enum / string [GREEDY, OPTIMISTIC, SEPARATE (deprecated), SEPARATE_BY_DEPLOY, SEPARATE_BY_REQUEST]
+| defaultSlavePlacement | GREEDY | See [Slave Placement](../about/how-it-works.md#user-content-placement) | enum / string [GREEDY, OPTIMISTIC, SEPARATE (deprecated), SEPARATE_BY_DEPLOY, SEPARATE_BY_REQUEST]
 | defaultValueForKillTasksOfPausedRequests | true | When a task is paused, the API allows for the tasks of that request to optionally not be killed. If that parameter is not set in the pause request, this value is used | boolean |
 | deltaAfterWhichTasksAreLateMillis | 30000 (30 seconds) | The amount of time after a task's schedule time that Singularity will classify it (in state API and dashboard) as a late task | long | 
 | deployHealthyBySeconds | 120 | Default amount of time to allow pending deploys to run for before transitioning them into active deploys. If more than this time passes before a deploy can be considered healthy (all of its tasks either make it to TASK_RUNNING or pass healthchecks), then the deploy will be rejected | long |
@@ -52,13 +53,21 @@ These are settings that are more likely to be altered.
 | considerTaskHealthyAfterRunningForSeconds | 5 | Tasks which make it to TASK_RUNNING and run for at least this long (that are not health-checked) are considered healthy | long | 
 | healthcheckIntervalSeconds | 5 | Default amount of time to wait in between attempting task healthchecks | long |
 | healthcheckTimeoutSeconds | 5 | Default amount of time to wait for healthchecks to return before considering them failed | long | 
-| killAfterTasksDoNotRunDefaultSeconds | 600 (10 minutes) | Amount of time after which new tasks (that are not part of a deploy) will be killed if they do not enter TASK_RUNNING | long | 
+| killAfterTasksDoNotRunDefaultSeconds | 600 (10 minutes) | Amount of time after which new tasks (that are not part of a deploy) will be killed if they do not enter TASK_RUNNING | long |
+| healthcheckMaxRetries | | Default max number of time to retry a failed healthcheck for a task before considering the task to be unhealthy | int |
+| healthcheckMaxTotalTimeoutSeconds | | Default total time to wait for healthchecks to pass | int |
+
+#### Deploys ####
+| Parameter | Default | Description | Type |
+|-----------|---------|-------------|------|
+| defaultDeployStepWaitTimeMs | 0 | If using an incremental deploy, wait this long between deploy steps if not specified in the deploy | int |
+| defaultDeployMaxTaskRetries | 0 | Allow this many tasks to fail and be retried before failing a new deploy | int |
 
 #### Limits ####
 | Parameter | Default | Description | Type |
 |-----------|---------|-------------|------|
 | maxDeployIdSize | 50 | Deploy ids over this size will cause deploy requests to fail with 400 | int | 
-| maxRequestIdSize | 100 | Request ids over this size will cause new requests to fail with 400 | int | 
+| maxRequestIdSize | 100 | Request ids over this size will cause new requests to fail with 400 | int |
 
 #### Cooldown ####
 | Parameter | Default | Description | Type |
@@ -74,6 +83,7 @@ These are settings that are more likely to be altered.
 | loadBalancerQueryParams | null | Additional query parameters to pass to the Load Balancer API | Map<String, String> | 
 | loadBalancerRequestTimeoutMillis | 2000 | The timeout for making API calls to the Load Balancer API (these will be retried) | long |
 | loadBalancerUri | null | The URI of the Load Balancer API (Baragon) | string |
+| deleteRemovedRequestsFromLoadBalancer | false | If a request is removed from Singularity, issue a `DELETE` to the load balancer for that service | boolean |
 
 #### User Interface ####
 | Parameter | Default | Description | Type |
@@ -96,6 +106,7 @@ These settings are less likely to be changed, but were included in the configura
 | persistHistoryEverySeconds | 3600 (1 hour) | Moves stale historical task data from ZooKeeper into MySQL, setting to 0 will disable history persistence | long |
 | saveStateEverySeconds | 60 | State about this Singularity instance is saved (available over API) on this interval | long |
 | checkScheduledJobsEveryMillis | 600000 (10 mins) | Check for new scheduled jobs and those running into the next scheduled time on this interval | long |
+| checkExpiringUserActionEveryMillis | 45000 | Check for expiring actions that should be expired on this interval | long |
 
 #### Mesos ####
 | Parameter | Default | Description | Type |
@@ -124,13 +135,19 @@ These settings are less likely to be changed, but were included in the configura
 | newTaskCheckerBaseDelaySeconds | 1 | Added to the the amount of deploy to wait before checking a new task | long | 
 | allowTestResourceCalls | false | If true, allows calls to be made to the test resource, which can test internal methods | boolean |
 | deleteDeploysFromZkWhenNoDatabaseAfterHours | 336 (14 days) | Delete deploys from zk when they are older than this if we are not using a database | long |
+| maxStaleDeploysPerRequestInZkWhenNoDatabase | infinite (disabled) | Delete oldest deploys from zk when there are more than this number for a given request, if we're not already persisting them to a database | int |
 | deleteStaleRequestsFromZkWhenNoDatabaseAfterHours | 336 (14 days) | Delete stale requests after this amount of time if we are not using a database | long |
+| maxRequestsWithHistoryInZkWhenNoDatabase | infinite (disabled) | Delete history of oldest requests from zk when there are more than this number of requests, if we're not already persisting them to a database | int |
 | deleteTasksFromZkWhenNoDatabaseAfterHours | 168 (7 days) | Delete old tasks from zk after this amount of time if we are not using a database | long |
+| maxStaleTasksPerRequestInZkWhenNoDatabase | infinite (disabled) | Delete oldest tasks from zk when there are more than this number for a given request, if we're not already persisting them to a database | int |
+| taskPersistAfterStartupBufferMillis | 60000ms (1 min) | Wait this long after a task starts before persisting it in history | long |
 | deleteDeadSlavesAfterHours | 168 (7 days) | Remove dead slaves from the list after this amount of time | long |
 | deleteUndeliverableWebhooksAfterHours | 168 (7 days) | Delete (and stop retrying) failed webhooks after this amount of time | long |
 | waitForListeners | true | If true, the event system waits for all listeners having processed an event. | boolean |
 | warnIfScheduledJobIsRunningForAtLeastMillis | 86400000 (1 day) | Warn if a scheduled job has been running for this long | long |
 | warnIfScheduledJobIsRunningPastNextRunPct | 200 | Warn if a scheduled job has run this much past its next scheduled run time (e.g. 200 => ran through next two run times) | int |
+| pendingDeployHoldTaskDuringDecommissionMillis | 600000ms (10 minutes) | Don't kill tasks on a decommissioning slave that are part of a pending deploy for this amount of time to allow the deploy to complete | long |
+| defaultBounceExpirationMinutes | 60 | Expire a bounce after this many minutes if an expiration is not provided in the request to bounce | int |
 
 ## Mesos Configuration ##
 
@@ -144,7 +161,8 @@ These settings should live under the "mesos" field inside the root configuration
 | frameworkId | null | | string |
 | frameworkFailoverTimeout | 0.0 | | double |
 | checkpoint | true | | boolean |
-
+| credentialPrincipal | | Enable framework auth by setting both this and credentialSecret | String |
+| credentialSecret | | Enable framework auth by setting both this and credentialPrincipal | String |
 
 #### Resource Limits ####
 | Parameter | Default | Description | Type |
@@ -175,6 +193,14 @@ These settings should live under the "mesos" field inside the root configuration
 |-----------|---------|-------------|------|
 | database | | The database connection for SingularityService follows the [dropwizard DataSourceFactory format](http://www.dropwizard.io/0.7.0/dropwizard-db/apidocs/io/dropwizard/db/DataSourceFactory.html) | [DataSourceFactory](http://www.dropwizard.io/0.7.0/dropwizard-db/apidocs/io/dropwizard/db/DataSourceFactory.html) |
 
+## Network Configuration
+
+These settings should live under the "network" field of the root configuration.
+
+| Parameter | Default | Description | Type |
+|-----------|---------|-------------|------|
+| defaultPortMapping | false | If no port mapping is provided, map all Mesos-provided ports to the host | boolean |
+
 #### History Purging ####
 
 These settings live under the "historyPuring" field in the root configuration
@@ -202,6 +228,7 @@ These settings live under the "s3" field in the root configuration. If using the
 | s3KeyFormat | | Search for logs with keys in this format, should be the same as the key format set in the SingularityS3Uploader | String |
 | s3AccessKey | | aws access key for the specified s3 bucket | String |
 | s3SecretKey | | aws secret key for the specified s3 bucket | String |
+| missingTaskDefaultS3SearchPeriodMillis | 259200000ms (3 days) | Search over this many days for s3 logs when no task data is found | long |
 
 ## Sentry ##
 
@@ -214,7 +241,7 @@ These settings live under the "sentry" field in the root config and enable Singu
 
 ## SMTP ##
 
-These settings live under the "smtp" field in teh root config.
+These settings live under the "smtp" field in the root config.
 
 | Parameter | Default | Description | Type |
 |-----------|---------|-------------|------|

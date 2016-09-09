@@ -81,3 +81,31 @@ ALTER TABLE `taskHistory`
   ADD COLUMN deployId VARCHAR(100) NULL,
   ADD KEY `deployId` (`deployId`, `requestId`, `updatedAt`);
 UPDATE `taskHistory` SET `deployId` = SUBSTRING_INDEX(SUBSTRING_INDEX(`taskId`, '-', -5), '-', 1) WHERE `deployId` IS NULL;
+
+--changeset ssalinas:8 dbms:mysql
+ALTER TABLE `taskHistory` ADD KEY `runId` (`runId`, `requestId`);
+
+--changeset wsorenson:9 dbms:mysql
+ALTER TABLE `requestHistory` ADD COLUMN message VARCHAR(280) NULL;
+
+ALTER TABLE `deployHistory` ADD COLUMN message VARCHAR(280) NULL;
+
+--changeset wsorenson:10 dbms:mysql
+ALTER TABLE `taskHistory`
+  ADD COLUMN `host` VARCHAR(100) CHARACTER SET ASCII NULL,
+  ADD COLUMN `startedAt` TIMESTAMP NULL,
+  DROP KEY `deployId`,
+  ADD KEY `startedAt` (`requestId`, `startedAt`),
+  ADD KEY `lastTaskStatus` (`requestId`, `lastTaskStatus`, `startedAt`),
+  ADD KEY `deployId` (`requestId`, `deployId`, `startedAt`),
+  ADD KEY `host` (`requestId`, `host`, `startedAt`),
+  ADD KEY `startedAt2` (`startedAt`, `requestId`);
+
+--changeset wsorenson:11 dbms:mysql
+UPDATE `taskHistory` SET `host` = SUBSTRING_INDEX(SUBSTRING_INDEX(`taskId`, '-', -2), '-', 1) WHERE `host` IS NULL;
+UPDATE `taskHistory` SET `startedAt` = FROM_UNIXTIME(SUBSTRING_INDEX(SUBSTRING_INDEX(`taskId`, '-', -4), '-', 1)/1000) WHERE `startedAt` IS NULL;
+
+--changeset ssalinas:12 dbms:mysql
+ALTER TABLE `taskHistory`
+  ADD KEY `updatedAt` (`updatedAt`, `requestId`)
+

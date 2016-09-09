@@ -4,7 +4,7 @@ This document is intended for people who want to work on SingularityUI independe
 
 If you're here just looking for information on how to build SingularityUI, please note that the Maven build process is configured to automatically build and package the UI into SingularityService.
 
-The compiled static files are placed in [`../SingularityService/target/generated-resources/static/`](../SingularityService/target/generated-resources/static/).
+The compiled static files are placed in `../SingularityService/target/generated-resources/static/`.
 
 ## Contents
 
@@ -18,54 +18,46 @@ The compiled static files are placed in [`../SingularityService/target/generated
 
 ## Developer overview
 
-SingularityUI is a static app that relies on SingularityService for its data.
+SingularityUI is a single page webapp that relies on SingularityService for its data.
 
-The app is built using Brunch (i.e. compiling CoffeeScript, etc), with Bower being used to manage its dependencies (e.g. jQuery, Backbone).
+The app is built using Gulp (i.e. compiling ES6, etc), with npm being used to manage its dependencies (e.g. React, Bootstrap).
 
-We recommend you familiarise yourself with the following if you haven't used them before:
+We recommend you familiarize yourself with the following if you haven't used them before:
 
-* [CoffeeScript](http://coffeescript.org/) is the language used for all logic.
+* [ES6](http://es6-features.org/#Constants) is the language used for all logic.
 * [Stylus](http://learnboost.github.io/stylus/) is used instead of CSS.
-* [Handlebars](http://handlebarsjs.com/) is the templating library.
-* [Backbone](http://backbonejs.org/) acts as the front-end framework.
+* [React](https://facebook.github.io/react/) acts as the front-end framework and templating library.
+* [Redux](http://redux.js.org/docs/introduction/) provides state managment.
+* [Bootstrap](http://getbootstrap.com/) provides standard responsive components, and [react-bootstrap](https://react-bootstrap.github.io/) provides react versions of said components.
 
 ## Set-up
 
 You will need to have the following:
 
 * [nodejs](http://nodejs.org/) with [npm](https://www.npmjs.org/).
-* [Brunch](http://brunch.io) & [Bower](http://bower.io), installable via `npm install -g brunch bower`.
+* [gulp](http://gulpjs.com/), installable via `npm install --global gulp-cli`.
 
 Below are some commands you might find useful when working on SingularityUI:
 
 ```bash
 # cd Singularity/SingularityUI
-# Install NPM deps, Bower deps, and do one production build
+# Install NPM deps
 npm install
 
-# Install just the Bower dependencies
-bower install
+# Build the app
+gulp build
 
-# Remove dependencies (reinstall them using 'npm install')
-rm -rf node_modules bower_components
-
-# Build SingularityUI. '--production' (optional) optimises the output files
-brunch build [--production]
-
-# Watch the project and build it when there are changes
-brunch watch
-
-# Same as above, but also start an HTTP server that serves the static files. '-p <number>' (optional) specifies what port it runs on
-brunch watch --server [-p 3333]
+# Serve the app locally at localhost:3334 and rebuild whenever files are changed.
+gulp serve
 ```
 
 When you first start, run `npm install` to download all the dependencies. Once that's done, you're ready to roll!
 
 ## Developing locally
 
-So far you have SingularityUI with all its dependencies installed. You're able to run SingularityUI and have it served using `brunch watch --server`. What we need now is a running SingularityService to pull information from.
+So far you have SingularityUI with all its dependencies installed. You're able to run SingularityUI and have it served using `gulp serve`. What we need now is a running SingularityService to pull information from.
 
-If you don't have one already (e.g. your team might be running one you can use), you can easily run your own via [Docker](docker.md). If running via docker, it is helpful to add the host that docker is running on to your `/etc/hosts` file as `docker` so we can reference it by hostname. If using `boot2docker` this is your `boot2docker ip`. We will reference the hostname as `docker` in the examples below.
+If you don't have one already (e.g. your team might be running one you can use), you can easily run your own via [Docker](developing-with-docker.md). If running via docker, it is helpful to add the host that docker is running on to your `/etc/hosts` file as `docker` so we can reference it by hostname. If using `boot2docker` this is your `boot2docker ip`. We will reference the hostname as `docker` in the examples below.
 
 
 Once the cluster is up and running, the API's root is available at [`http://docker/singularity/api`](http://docker/singularity/api) by default.
@@ -95,8 +87,8 @@ name: SingularityUI
 
 routes:
 
-  # Redirect static assets to local brunch server (assuming it is on port 3333)
-  ".*/static/.*": "http://localhost:3333/"
+  # Redirect static assets to local server (assuming it is on port 3334)
+  ".*/static/.*": "http://localhost:3334/"
 
   # Redirect any API calls to the QA Singularity service (the slash after the domain is necessary)
   ".*/api/.*": "http://docker/"
@@ -124,11 +116,11 @@ Assuming you used the second command, you can now access SingularityUI by going 
 If you're confused as to what's going on here, all your requests are being processed by vee so that:
 
 * Requests to `localhost:4001/singularity/api` are sent to the server at `docker`.
-* All other requests, including static files, are sent to the Brunch server running locally.
+* All other requests, including static files, are sent to the gulp server running locally.
 
 ### Connecting to the API
 
-So far you have SingularityUI being served by Brunch, and SingularityService running somewhere. If you have a proxy like vee running too, please replace the ports/URIs that follow with the ones you're using for the proxy.
+So far you have SingularityUI being served by gulp, and SingularityService running somewhere. If you have a proxy like vee running too, please replace the ports/URIs that follow with the ones you're using for the proxy.
 
 Open up SingularityUI in your browser by going to [`http://localhost:3333`](http://localhost:3333).
 
@@ -137,10 +129,10 @@ You'll be prompted to input an API root. This is the service that SingularityUI 
 You can change the value of this at any point by typing the following in your JS console:
 
 ```javascript
-localStorage.set('apiRootOverride', 'http://docker/singularity/api')
+localStorage.setItem('apiRootOverride', 'http://docker/singularity/api')
 ```
 
-And there you go! You should at this point have SingularityUI running in your browser with it connected to SingularityService. Just let Brunch watch and compile your files as you work and try it out in your browser.
+And there you go! You should at this point have SingularityUI running in your browser with it connected to SingularityService. Just let gulp watch and compile your files as you work and try it out in your browser.
 
 While we're on the topic of localStorage overrides, another useful one you can use disables the auto-refresh which will stop the page re-rendering so you can properly inspect the DOM:
 
@@ -150,42 +142,39 @@ localStorage.setItem('suppressRefresh', true)
 
 ## Code structure
 
-As mentioned before, SingularityUI uses [Backbone](http://backbonejs.org/). If you're not familiar with how it does things, please look into it and familiarise yourself with Views, Models, Collections, and the event-based interaction between them all.
+As mentioned before, SingularityUI uses [React](https://facebook.github.io/react/) and [Redux](http://redux.js.org/docs/introduction/). If you're not familiar with how they do things, please look into them and familiarize yourself with React's lifecycle and the Redux store and dispatch.
 
-What follows is a run-down of how things work in Singularity, using the Slaves page as an example.
+What follows is a run-down of how things work in Singularity, using the Webhooks page as an example.
 
-First you request `/singularity/slaves`. This triggers [our router](../SingularityUI/app/router.coffee) to fire up [`SlavesController`](../SingularityUI/app/controllers/Slaves.coffee).
+First you request `/singularity/webhooks`. This triggers [our router](../SingularityUI/app/router.jsx) to fire up [`Webhooks`](../SingularityUI/app/components/webhooks/webhooks.jsx).
 
-The controller bootstraps the things we need for the requested page. First, it creates 3 collections--one for each API endpoint we're going to hit.
+When the Webhooks component is called, the initial action occurs in the `connect()` function call at the bottom of the page.
 
-Afterwards, it creates 3 instances of [`SimpleSubview`](../SingularityUI/app/views/simpleSubview.coffee) and gives each one a template to render and a collection to use for data.
+First, `connect()` calls `mapStateToProps()`. Though it is called with the redux store and the component's own props, the Webhooks page doesn't have props passed into it. This returns props that are obtained from the redux store, such as API calls.
 
-`SimpleSubview` is a reusable class that renders its template in response to change events from the collection you gave it. For the slaves page, when one of the collections receives a response from the service `SimpleSubview` renders the required table and nothing more, therefore giving it ownership over one component of the page, with the collection telling it when to render it.
+Then `connect()` calles `mapDispatchToProps()`. This is called with the redux dispatch and the component's own props, and returns props are functions which can perform actions.
 
-The controller also creates a [`SlavesView`](../SingularityUI/app/views/slaves.coffee) and assigns it as its primary view using `Controller.setView(View)`. This view is special because it represents the entire page being rendered. We feed it with references to our sub-views so that it can embed them into itself.
+`connect()` combines the outputs of `mapStateToProps()` and `mapDispatchToProps()` into one object and passes that in as props to the component the result of `connect()` is called with.
 
-Finally, we tell the app to render this main view of ours and to start all of the collection fetches, which will eventually trigger the subview renders when completed.
+The result of `connect()` is called with the [`rootComponent`](../SingularityUI/app/rootComponent.jsx). `rootComponent` sets up automatically refreshing the page and can display a 404 page if the component sets a `notFound` prop. The passed-in `refresh()` function fetches the page data from the API (in some cases in which initial data needs to not be fetched again, an `initialize()` function is also passed in to perform only initial calls). While the `rootComponent` is waiting for this to finish, the loading animation is displayed.
 
-Everything else is standard [Backbone](http://backbonejs.org/)-structured code. Please refer to the official docs for how to do things like respond to UI events, etc.
+Finally, once the API call does complete, `rootComponent` takes the props provided by `connect()` and passes them into the Webhooks component itself, which will render the table of webhooks that you see.
 
-To summarise:
-* A controller bootstraps everything (collections, models, views) for a page.
-* If there is more than one collection/model involved, we split the view up into subviews in order to keep things modular and easy to change/render. A primary view glues everything together.
-* If there is one/no collection/model being used, we just use the primary view for everything.
-* Use Backbone conventions wherever possible. Try to rely on events, not callbacks.
+Everything else is standard [React](https://facebook.github.io/react/)-structured code. Please refer to the official docs for how to do things like respond to UI events, etc.
+
+To summarize:
+* React Router bootstraps everything for the page.
+* All API calls necessary for rendering the page are performed in the primary component's `refresh()` or `initialize()` function.
+* Use React conventions wherever possible. Try to rely on props, not component state.
 
 ### Useful links
 
 There are some libraries/classes in SingularityUI which you should be aware of if you plan on working on it:
 
-* [Application](../SingularityUI/app/application.coffee) is responsible for a lot of global behaviour, including error-handling.
-* [Router](../SingularityUI/app/router.coffee) points requests to their respective controllers.
-* [Utils](../SingularityUI/app/utils.coffee) contains a bunch of reusable static functions.
-* The base classes. The various components extend the following:
-  * [Model](../SingularityUI/app/models/model.coffee)
-  * [Collection](../SingularityUI/app/collections/collection.coffee) & [PaginableCollection](../SingularityUI/app/collections/PaginableCollection.coffee)
-  * [View](../SingularityUI/app/views/view.coffee)
-  * [Controller](../SingularityUI/app/controllers/Controller.coffee)
-* Reusable components:
-  * [SimpleSubview](../SingularityUI/app/views/simpleSubview.coffee)
-  * [ExpandableTableSubview](../SingularityUI/app/views/expandableTableSubview.coffee)
+* [Initialize](../SingularityUI/app/initialize.jsx) sets up the Redux store, user settings, and the router. It also prompts the user for API root if necessary.
+* [Router](../SingularityUI/app/router.jsx) points requests to their respective components.
+* [Application](../SingularityUI/app/components/common/Application.jsx) provides the naviagtion header and global search functionality.
+* [Base](../SingularityUI/app/actions/api/base.es6) is responsible for API call behavior, including error-handling.
+* [Utils](../SingularityUI/app/utils.jsx) contains a bunch of reusable static functions.
+* [UITable](../SingularityUI/app/components/common/table/UITable.jsx) is a comprehensive table component that provides sorting, pagination and other utilities. Data is provided by child [Column](../SingularityUI/app/components/common/table/Column.jsx) components.
+* [FormModal](../SingularityUI/app/components/common/modal/FormModal.jsx) provides a base for most of Singularity's modals, such as the Run Now and Pause Request modals.

@@ -66,7 +66,7 @@ public class SandboxResource extends AbstractHistoryResource {
 
   private SingularityTaskHistory checkHistory(String taskId) {
     final SingularityTaskId taskIdObj = getTaskIdObject(taskId);
-    final SingularityTaskHistory taskHistory = getTaskHistory(taskIdObj);
+    final SingularityTaskHistory taskHistory = getTaskHistoryRequired(taskIdObj);
 
     if (!taskHistory.getDirectory().isPresent()) {
       logSupport.checkDirectory(taskIdObj);
@@ -93,6 +93,11 @@ public class SandboxResource extends AbstractHistoryResource {
   public SingularitySandbox browse(@ApiParam("The task ID to browse") @PathParam("taskId") String taskId,
       @ApiParam("The path to browse from") @QueryParam("path") String path) {
     authorizationHelper.checkForAuthorizationByTaskId(taskId, user, SingularityAuthorizationScope.READ);
+
+    // Remove all trailing slashes from the path
+    if (path != null) {
+      path = path.replaceAll("\\/+$", "");
+    }
 
     final String currentDirectory = getCurrentDirectory(taskId, path);
     final SingularityTaskHistory history = checkHistory(taskId);

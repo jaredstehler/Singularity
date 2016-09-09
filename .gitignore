@@ -1,3 +1,4 @@
+_book
 *.orig
 target
 .DS_Store
@@ -9,6 +10,7 @@ target-eclipse
 bin
 *~
 JavaConsole.java
+.checkstyle
 *.iml
 .idea
 *.pyc
@@ -22,6 +24,7 @@ SingularityUI/bower_components/*
 SingularityUI/brunchlog
 SingularityUI/app/env.coffee
 
+node_modules/*
 .vagrant
 vagrant/Berksfile.lock
 SingularityUI/.vee

@@ -1,14 +1,18 @@
 package com.hubspot.singularity.mesos;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
 import javax.inject.Singleton;
 
 import org.apache.mesos.MesosSchedulerDriver;
 import org.apache.mesos.Protos;
+import org.apache.mesos.Protos.Credential;
+import org.apache.mesos.Protos.ExecutorID;
 import org.apache.mesos.Protos.FrameworkID;
 import org.apache.mesos.Protos.FrameworkInfo;
 import org.apache.mesos.Protos.MasterInfo;
+import org.apache.mesos.Protos.SlaveID;
 import org.apache.mesos.Protos.TaskID;
 import org.apache.mesos.Scheduler;
 import org.apache.mesos.SchedulerDriver;
@@ -19,6 +23,8 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Optional;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
+import com.google.protobuf.ByteString;
+import com.hubspot.singularity.SingularityFrameworkMessage;
 import com.hubspot.singularity.SingularityMainModule;
 import com.hubspot.singularity.SingularityTaskId;
 import com.hubspot.singularity.config.MesosConfiguration;
@@ -62,7 +68,15 @@ public class SingularityDriver {
 
     this.scheduler = scheduler;
 
-    this.driver = new MesosSchedulerDriver(scheduler, frameworkInfo, configuration.getMaster());
+    if (configuration.getCredentialPrincipal().isPresent() && configuration.getCredentialSecret().isPresent()) {
+      Credential credential = Credential.newBuilder()
+        .setPrincipal(configuration.getCredentialPrincipal().get())
+        .setSecret(configuration.getCredentialSecret().get())
+        .build();
+      this.driver = new MesosSchedulerDriver(scheduler, frameworkInfo, configuration.getMaster(), credential);
+    } else {
+      this.driver = new MesosSchedulerDriver(scheduler, frameworkInfo, configuration.getMaster());
+    }
   }
 
   @VisibleForTesting
@@ -93,6 +107,12 @@ public class SingularityDriver {
 
     LOG.info("Killed task {} with driver status: {}", taskId, status);
 
+    return status;
+  }
+
+  public Protos.Status sendFrameworkMessage(SingularityTaskId taskId, ExecutorID executorID, SlaveID slaveID, byte [] bytes) {
+    Protos.Status status = driver.sendFrameworkMessage(executorID, slaveID, bytes);
+    LOG.info("Sent framework message for task {} with driver status: {}", taskId, status);
     return status;
   }
 
